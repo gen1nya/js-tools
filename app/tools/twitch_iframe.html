@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Стримеры — Sora Live</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      background-color: #121212;
+      color: #fff;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      margin-bottom: 2rem;
+      font-size: 2rem;
+      color: #ccc;
+      text-align: center;
+    }
+
+    .streamer-list {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .streamer {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #1e1e1e;
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .streamer:hover {
+      background: #2a2a2a;
+    }
+
+    .streamer.active {
+      background: #9147ff;
+    }
+
+    .streamer img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+
+    .iframe-wrapper {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    iframe {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    #player {
+      width: 854px;
+      height: 480px;
+      max-width: 100%;
+    }
+
+    #chat {
+      width: 350px;
+      height: 660px;
+      max-width: 100%;
+    }
+
+    .share-link {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: #333;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #ccc;
+      text-align: center;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      margin-left: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      background: #9147ff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .copy-btn:hover {
+      background: #7b2cbf;
+    }
+
+    @media (max-width: 900px) {
+      .iframe-wrapper {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #player, #chat {
+        width: 100%;
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+<h1>💫 Выберите стримера</h1>
+<div class="streamer-list" id="streamer-list"></div>
+
+<div class="iframe-wrapper" id="iframe-wrapper" style="display: none;">
+  <iframe id="player" allow="fullscreen" allowfullscreen></iframe>
+  <iframe id="chat"></iframe>
+</div>
+
+<div id="share-container" style="display: none;">
+  <div class="share-link">
+    Ссылка для шаринга: <span id="share-url"></span>
+    <button class="copy-btn" onclick="copyShareLink()">Копировать</button>
+  </div>
+</div>
+
+<script>
+  const streamers = [
+    {
+      name: "kurosakissora",
+      display: "Kurosaki Sora",
+      avatar: "https://static-cdn.jtvnw.net/jtv_user_pictures/29fe8dec-9c2f-485a-884a-99690e84c0a9-profile_image-70x70.png"
+    },
+    {
+      name: "ellis_leaf",
+      display: "Ellis Leaf",
+      avatar: "https://static-cdn.jtvnw.net/jtv_user_pictures/a79da802-b52f-48c6-89b8-37e078e19ef8-profile_image-70x70.png"
+    }
+  ];
+
+  const parentDomain = "utils.rus.ebatel.online";
+
+  const list = document.getElementById("streamer-list");
+  const player = document.getElementById("player");
+  const chat = document.getElementById("chat");
+  const wrapper = document.getElementById("iframe-wrapper");
+  const shareContainer = document.getElementById("share-container");
+  const shareUrl = document.getElementById("share-url");
+
+  let currentStreamer = null;
+
+  // Функция для получения URL параметров
+  function getUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      streamer: params.get('streamer'),
+      channel: params.get('channel') // альтернативный параметр
+    };
+  }
+
+  // Функция для обновления URL без перезагрузки страницы
+  function updateUrl(streamerName) {
+    const url = new URL(window.location);
+    url.searchParams.set('streamer', streamerName);
+    window.history.replaceState({}, '', url);
+
+    // Обновляем ссылку для шаринга
+    shareUrl.textContent = url.toString();
+  }
+
+  // Функция для загрузки стримера
+  function loadStreamer(streamerName) {
+    const streamer = streamers.find(s => s.name === streamerName);
+    if (!streamer) {
+      console.warn(`Стример "${streamerName}" не найден`);
+      return false;
+    }
+
+    currentStreamer = streamerName;
+
+    // Загружаем iframe'ы
+    player.src = `https://player.twitch.tv/?channel=${streamerName}&parent=${parentDomain}`;
+    chat.src = `https://www.twitch.tv/embed/${streamerName}/chat?parent=${parentDomain}`;
+
+    // Показываем плеер и ссылку для шаринга
+    wrapper.style.display = "flex";
+    shareContainer.style.display = "block";
+
+    // Обновляем URL
+    updateUrl(streamerName);
+
+    // Обновляем активный стример в списке
+    updateActiveStreamer(streamerName);
+
+    // Прокручиваем к плееру
+    setTimeout(() => {
+      window.scrollTo({ top: wrapper.offsetTop - 20, behavior: "smooth" });
+    }, 100);
+
+    return true;
+  }
+
+  // Функция для обновления активного стримера в списке
+  function updateActiveStreamer(activeStreamerName) {
+    document.querySelectorAll('.streamer').forEach(el => {
+      el.classList.remove('active');
+      if (el.dataset.streamer === activeStreamerName) {
+        el.classList.add('active');
+      }
+    });
+  }
+
+  // Функция для копирования ссылки
+  function copyShareLink() {
+    const url = shareUrl.textContent;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = event.target;
+      const originalText = btn.textContent;
+      btn.textContent = 'Скопировано!';
+      btn.style.background = '#28a745';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = '#9147ff';
+      }, 2000);
+    }).catch(() => {
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert('Ссылка скопирована!');
+    });
+  }
+
+  // Создаем элементы списка стримеров
+  streamers.forEach(({ name, display, avatar }) => {
+    const div = document.createElement("div");
+    div.className = "streamer";
+    div.dataset.streamer = name;
+    div.innerHTML = `<img src="${avatar}" alt="${display}"><span>${display}</span>`;
+    div.onclick = () => loadStreamer(name);
+    list.appendChild(div);
+  });
+
+  // Проверяем URL параметры при загрузке страницы
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = getUrlParams();
+    const targetStreamer = params.streamer || params.channel;
+
+    if (targetStreamer) {
+      if (!loadStreamer(targetStreamer)) {
+        // Если стример не найден в списке, попробуем загрузить как кастомный канал
+        if (targetStreamer.match(/^[a-zA-Z0-9_]{3,25}$/)) {
+          currentStreamer = targetStreamer;
+          player.src = `https://player.twitch.tv/?channel=${targetStreamer}&parent=${parentDomain}`;
+          chat.src = `https://www.twitch.tv/embed/${targetStreamer}/chat?parent=${parentDomain}`;
+          wrapper.style.display = "flex";
+          shareContainer.style.display = "block";
+          updateUrl(targetStreamer);
+
+          // Добавляем информацию о кастомном канале
+          const title = document.querySelector('h1');
+          title.innerHTML = `💫 Смотрим: <span style="color: #9147ff">${targetStreamer}</span>`;
+        }
+      }
+    }
+  });
+
+  // Делаем функции доступными глобально для onclick
+  window.copyShareLink = copyShareLink;
+</script>
+</body>
+</html>

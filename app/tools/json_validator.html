@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Validator & Beautifier</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/json5/2.2.3/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .privacy-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: #e9ecef;
+        }
+
+        .panel {
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            font-weight: 600;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-content {
+            flex: 1;
+            position: relative;
+            display: flex;
+        }
+
+        .editor-container {
+            display: flex;
+            width: 100%;
+            height: 450px;
+            background: #fafafa;
+        }
+
+        .line-numbers {
+            background: #f1f3f4;
+            color: #666;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 20px 10px;
+            text-align: right;
+            user-select: none;
+            border-right: 1px solid #e1e4e8;
+            min-width: 50px;
+            overflow: hidden;
+        }
+
+        .editor-textarea {
+            flex: 1;
+            border: none;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            background: transparent;
+            white-space: pre;
+            overflow-wrap: normal;
+        }
+
+        .output {
+            width: 100%;
+            height: 450px;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow: auto;
+            background: #f8f9fa;
+            white-space: pre;
+        }
+
+        .error-highlight {
+            background-color: rgba(255, 0, 0, 0.1) !important;
+            border-left: 4px solid #dc3545;
+        }
+
+        .error-marker {
+            position: absolute;
+            background: #dc3545;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 10;
+            pointer-events: none;
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status.valid {
+            background: #d4edda;
+            color: #155724;
+            border-top: 3px solid #28a745;
+        }
+
+        .status.invalid {
+            background: #f8d7da;
+            color: #721c24;
+            border-top: 3px solid #dc3545;
+        }
+
+        .status.neutral {
+            background: #e2e3e5;
+            color: #383d41;
+            border-top: 3px solid #6c757d;
+        }
+
+        .status-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status.valid .status-icon {
+            background: #28a745;
+        }
+
+        .status.invalid .status-icon {
+            background: #dc3545;
+        }
+
+        .status.neutral .status-icon {
+            background: #6c757d;
+        }
+
+        .error-details {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(220, 53, 69, 0.1);
+            border-left: 4px solid #dc3545;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            display: none;
+        }
+
+        .footer {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            margin-top: 30px;
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                justify-content: center;
+            }
+
+            .editor-container {
+                height: 300px;
+            }
+
+            .output {
+                height: 300px;
+            }
+        }
+
+        .example-link {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 12px;
+        }
+
+        .example-link:hover {
+            color: #764ba2;
+        }
+
+        .json5-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 10px 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .json5-toggle:hover {
+            background: rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+
+        .json5-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .json5-label {
+            cursor: pointer;
+            font-size: 14px;
+            color: #495057;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .json5-active {
+            background: rgba(102, 126, 234, 0.2) !important;
+            border-color: #667eea !important;
+        }
+
+        .json5-active .json5-label {
+            color: #667eea;
+        }
+
+        /* Подсветка синтаксиса JSON */
+        .json-key { color: #d73a49; font-weight: bold; }
+        .json-string { color: #032f62; }
+        .json-number { color: #005cc5; }
+        .json-boolean { color: #e36209; }
+        .json-null { color: #6f42c1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{} JSON Validator</h1>
+            <p>Валидируйте JSON и JSON5 • Не ебите мозги</p>
+        </div>
+
+        <div class="main-content">
+            <div class="controls">
+                <button class="btn btn-primary" onclick="validateAndFormat()">
+                    ✨ Валидировать и форматировать
+                </button>
+                <button class="btn btn-secondary" onclick="minifyJson()">
+                    📦 Минифицировать
+                </button>
+                <button class="btn btn-secondary" onclick="clearAll()">
+                    🗑️ Очистить
+                </button>
+                <button class="btn btn-success" onclick="copyOutput()">
+                    📋 Копировать результат
+                </button>
+                <label class="json5-toggle">
+                    <input type="checkbox" id="json5Mode" onchange="toggleJson5Mode()">
+                    <span class="json5-label">🚀 JSON5 режим</span>
+                </label>
+            </div>
+
+            <div class="workspace">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📝 Исходный JSON</span>
+                        <span class="example-link" onclick="loadExample()">загрузить пример</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="editor-container">
+                            <div id="lineNumbers" class="line-numbers">1</div>
+                            <textarea 
+                                id="input" 
+                                class="editor-textarea"
+                                placeholder='Вставьте сюда ваш JSON...
+
+Например:
+{
+  "name": "Иван",
+  "age": 30,
+  "city": "Москва"
+}'
+                                spellcheck="false"
+                            ></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>✅ Отформатированный результат</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="output" class="output">Результат появится здесь...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="status" class="status neutral">
+                <div class="status-icon"></div>
+                <span>Готов к работе • JSON/JSON5 • Ctrl+Enter для валидации</span>
+                <div id="errorDetails" class="error-details"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Сделано с ❤️ и claude.ai для разработчиков • Работает полностью в браузере</p>
+        </div>
+    </div>
+
+    <script>
+        let currentErrorLine = -1;
+
+        function updateLineNumbers() {
+            const input = document.getElementById('input');
+            const lineNumbers = document.getElementById('lineNumbers');
+            const lines = input.value.split('\n');
+            
+            let numbersHtml = '';
+            for (let i = 1; i <= lines.length; i++) {
+                const isErrorLine = i === currentErrorLine;
+                numbersHtml += `<div class="${isErrorLine ? 'error-highlight' : ''}">${i}</div>`;
+            }
+            
+            lineNumbers.innerHTML = numbersHtml;
+        }
+
+        function syncScroll() {
+            const input = document.getElementById('input');
+            const lineNumbers = document.getElementById('lineNumbers');
+            lineNumbers.scrollTop = input.scrollTop;
+        }
+
+        function findErrorPosition(jsonString, errorMessage) {
+            // Пытаемся извлечь позицию из сообщения об ошибке
+            const positionMatch = errorMessage.match(/position (\d+)/i);
+            if (positionMatch) {
+                return parseInt(positionMatch[1]);
+            }
+
+            // Ищем общие ошибки
+            if (errorMessage.includes('Unexpected token')) {
+                const tokenMatch = errorMessage.match(/Unexpected token (.+?) in JSON at position (\d+)/);
+                if (tokenMatch) {
+                    return parseInt(tokenMatch[2]);
+                }
+            }
+
+            // Дополнительная логика для поиска ошибок
+            if (errorMessage.includes('Unexpected end')) {
+                return jsonString.length - 1;
+            }
+
+            return -1;
+        }
+
+        function getLineAndColumnFromPosition(text, position) {
+            if (position < 0) return { line: -1, column: -1 };
+            
+            const lines = text.substring(0, position).split('\n');
+            const line = lines.length;
+            const column = lines[lines.length - 1].length + 1;
+            
+            return { line, column };
+        }
+
+        function highlightErrorLine(line) {
+            currentErrorLine = line;
+            updateLineNumbers();
+            
+            // Прокручиваем к строке с ошибкой
+            const input = document.getElementById('input');
+            const lineHeight = parseFloat(window.getComputedStyle(input).lineHeight);
+            const scrollTop = (line - 3) * lineHeight; // -3 для показа контекста
+            input.scrollTop = Math.max(0, scrollTop);
+            syncScroll();
+        }
+
+        function toggleJson5Mode() {
+            const checkbox = document.getElementById('json5Mode');
+            const toggle = checkbox.parentElement;
+            const input = document.getElementById('input');
+            
+            if (checkbox.checked) {
+                toggle.classList.add('json5-active');
+                input.placeholder = `Вставьте сюда ваш JSON или JSON5...
+
+JSON5 поддерживает:
+{
+  // Комментарии
+  name: "Иван",  // Ключи без кавычек
+  'age': 30,     // Одинарные кавычки
+  city: "Москва",
+  tags: ["dev", "js",], // Trailing comma
+}`;
+            } else {
+                toggle.classList.remove('json5-active');
+                input.placeholder = `Вставьте сюда ваш JSON...
+
+Например:
+{
+  "name": "Иван",
+  "age": 30,
+  "city": "Москва"
+}`;
+            }
+            
+            // Если есть контент, перевалидируем
+            if (input.value.trim()) {
+                validateAndFormat();
+            }
+        }
+
+        function validateAndFormat() {
+            const input = document.getElementById('input').value.trim();
+            const output = document.getElementById('output');
+            const status = document.getElementById('status');
+            const errorDetails = document.getElementById('errorDetails');
+            const isJson5Mode = document.getElementById('json5Mode').checked;
+
+            // Сбрасываем подсветку ошибок
+            currentErrorLine = -1;
+            updateLineNumbers();
+            errorDetails.style.display = 'none';
+
+            if (!input) {
+                showStatus('neutral', `Введите ${isJson5Mode ? 'JSON/JSON5' : 'JSON'} для валидации`);
+                output.textContent = '';
+                return;
+            }
+
+            try {
+                const parsed = isJson5Mode ? JSON5.parse(input) : JSON.parse(input);
+                const formatted = JSON.stringify(parsed, null, 2);
+                
+                output.textContent = formatted;
+                const objectInfo = Array.isArray(parsed) 
+                    ? `массив из ${parsed.length} элементов`
+                    : `объект с ${Object.keys(parsed).length} ключами`;
+                    
+                const mode = isJson5Mode ? 'JSON5' : 'JSON';
+                showStatus('valid', `✅ ${mode} валидный! ${objectInfo}`);
+                
+                // Подсветка синтаксиса
+                highlightJsonSyntax(output);
+            } catch (error) {
+                // Находим позицию ошибки
+                const errorPosition = findErrorPosition(input, error.message);
+                const { line, column } = getLineAndColumnFromPosition(input, errorPosition);
+                
+                const mode = isJson5Mode ? 'JSON5' : 'JSON';
+                let errorMessage = `❌ Ошибка валидации ${mode}`;
+                if (line > 0) {
+                    errorMessage += ` в строке ${line}, позиции ${column}`;
+                    highlightErrorLine(line);
+                }
+
+                showStatus('invalid', errorMessage);
+
+                // Показываем детали ошибки с учетом режима
+                const suggestions = isJson5Mode ? `
+                    <strong>JSON5 поддерживает:</strong><br>
+                    • Комментарии: // и /* */<br>
+                    • Ключи без кавычек<br>
+                    • Одинарные кавычки для строк<br>
+                    • Trailing запятые<br>
+                    • Многострочные строки<br><br>
+                    <strong>Но проверьте:</strong><br>
+                    • Правильность синтаксиса комментариев<br>
+                    • Корректность trailing запятых<br>
+                    • Валидность ключей без кавычек
+                ` : `
+                    <strong>Проверьте:</strong><br>
+                    • Все скобки и кавычки закрыты<br>
+                    • Нет лишних запятых<br>
+                    • Ключи в двойных кавычках<br>
+                    • Правильное экранирование символов<br><br>
+                    💡 <strong>Совет:</strong> Включите JSON5 режим для поддержки комментариев и более гибкого синтаксиса
+                `;
+
+                errorDetails.innerHTML = `
+                    <strong>Детали ошибки:</strong><br>
+                    ${error.message}<br><br>
+                    ${suggestions}
+                `;
+                errorDetails.style.display = 'block';
+
+                output.textContent = `🚫 ${mode} содержит ошибки\n\n${error.message}`;
+            }
+        }
+
+        function minifyJson() {
+            const input = document.getElementById('input').value.trim();
+            const output = document.getElementById('output');
+            const isJson5Mode = document.getElementById('json5Mode').checked;
+
+            if (!input) {
+                showStatus('neutral', `Введите ${isJson5Mode ? 'JSON/JSON5' : 'JSON'} для минификации`);
+                return;
+            }
+
+            try {
+                const parsed = isJson5Mode ? JSON5.parse(input) : JSON.parse(input);
+                const minified = JSON.stringify(parsed);
+                
+                output.textContent = minified;
+                const reduction = ((input.length - minified.length) / input.length * 100).toFixed(1);
+                const mode = isJson5Mode ? 'JSON5' : 'JSON';
+                showStatus('valid', `✅ ${mode} минифицирован! Размер уменьшен на ${reduction}% (${input.length} → ${minified.length} символов)`);
+                
+                // Сбрасываем подсветку ошибок
+                currentErrorLine = -1;
+                updateLineNumbers();
+            } catch (error) {
+                const mode = isJson5Mode ? 'JSON5' : 'JSON';
+                showStatus('invalid', `❌ Ошибка в ${mode}: ${error.message}`);
+            }
+        }
+
+        function clearAll() {
+            document.getElementById('input').value = '';
+            document.getElementById('output').textContent = 'Результат появится здесь...';
+            currentErrorLine = -1;
+            updateLineNumbers();
+            document.getElementById('errorDetails').style.display = 'none';
+            showStatus('neutral', 'Готов к работе • JSON/JSON5 • Ctrl+Enter для валидации');
+        }
+
+        function copyOutput() {
+            const output = document.getElementById('output').textContent;
+            
+            if (output === 'Результат появится здесь...' || output.startsWith('🚫 JSON содержит ошибки')) {
+                showStatus('neutral', 'Нечего копировать');
+                return;
+            }
+
+            navigator.clipboard.writeText(output).then(() => {
+                showStatus('valid', '📋 Результат скопирован в буфер обмена!');
+                setTimeout(() => {
+                    if (document.getElementById('status').classList.contains('valid')) {
+                        showStatus('valid', 'JSON валидный!');
+                    }
+                }, 2000);
+            }).catch(() => {
+                showStatus('invalid', 'Ошибка копирования');
+            });
+        }
+
+        function loadExample() {
+            const isJson5Mode = document.getElementById('json5Mode').checked;
+            const input = document.getElementById('input');
+            
+            if (isJson5Mode) {
+                // JSON5 пример с комментариями, ключами без кавычек и trailing comma
+                const json5Example = `{
+  // Информация о пользователе
+  user: {
+    id: 12345,
+    name: "Анна Смирнова",
+    'email': 'anna@example.com', // одинарные кавычки тоже работают
+    isActive: true,
+    balance: 2750.80,
+    
+    /* Настройки пользователя
+       могут быть многострочными */
+    preferences: {
+      language: "ru",
+      notifications: true,
+      theme: "dark", // trailing comma здесь разрешена
+    },
+    
+    tags: [
+      "premium", 
+      "verified", 
+      "early-adopter", // и здесь тоже
+    ],
+    
+    lastLogin: "2025-09-21T10:30:00Z",
+    metadata: null, // финальная trailing comma
+  }
+}`;
+                input.value = json5Example;
+            } else {
+                // Обычный JSON пример
+                const jsonExample = {
+                    "user": {
+                        "id": 12345,
+                        "name": "Анна Смирнова",
+                        "email": "anna.smirnova@example.com",
+                        "isActive": true,
+                        "balance": 2750.80,
+                        "preferences": {
+                            "language": "ru",
+                            "notifications": true,
+                            "theme": "dark"
+                        },
+                        "tags": ["premium", "verified", "early-adopter"],
+                        "lastLogin": "2025-09-21T10:30:00Z",
+                        "metadata": null
+                    }
+                };
+                input.value = JSON.stringify(jsonExample, null, 2);
+            }
+            
+            updateLineNumbers();
+            const mode = isJson5Mode ? 'JSON5' : 'JSON';
+            showStatus('neutral', `${mode} пример загружен - нажмите "Валидировать" для проверки`);
+        }
+
+        function showStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.querySelector('span').textContent = message;
+        }
+
+        function highlightJsonSyntax(element) {
+            let content = element.textContent;
+            
+            content = content
+                .replace(/(".*?")\s*:/g, '<span class="json-key">$1</span>:')
+                .replace(/:\s*(".*?")/g, ': <span class="json-string">$1</span>')
+                .replace(/:\s*(\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+                .replace(/:\s*(true|false)/g, ': <span class="json-boolean">$1</span>')
+                .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
+            
+            element.innerHTML = content;
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('input');
+            
+            // Обновляем номера строк при вводе
+            input.addEventListener('input', function() {
+                updateLineNumbers();
+                
+                // Автоматическая валидация с задержкой
+                clearTimeout(window.validationTimeout);
+                window.validationTimeout = setTimeout(() => {
+                    if (this.value.trim()) {
+                        validateAndFormat();
+                    }
+                }, 800);
+            });
+
+            // Синхронизация скролла
+            input.addEventListener('scroll', syncScroll);
+
+            // Горячие клавиши
+            input.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    validateAndFormat();
+                }
+            });
+
+            // Инициализируем номера строк
+            updateLineNumbers();
+        });
+    </script>
+</body>
+</html>

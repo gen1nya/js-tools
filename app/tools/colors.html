@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Palette Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .color-wheel-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-wheel-container {
+            position: relative;
+            width: 350px;
+            height: 350px;
+            margin: 0 auto 20px;
+        }
+
+        #colorWheel {
+            border-radius: 50%;
+            cursor: crosshair;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        #colorWheel.dragging {
+            cursor: grabbing;
+        }
+
+        #colorWheel.hovering-point {
+            cursor: grab;
+        }
+
+        .color-point {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 3px solid white;
+            border-radius: 50%;
+            cursor: move;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        .point-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .converters-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .converter-group {
+            margin-bottom: 20px;
+        }
+
+        .converter-group h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 60px;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .input-label {
+            font-weight: 500;
+            color: #555;
+            text-align: right;
+        }
+
+        .color-input {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .color-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .copy-btn {
+            padding: 6px 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .copy-btn.copied {
+            background: #6c757d;
+        }
+
+        .palette-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .palette-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .color-swatch {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.05);
+        }
+
+        .color-info {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .tools-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .tool-card {
+            background: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .tool-card h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1em;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        .gradient-preview {
+            height: 60px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+        }
+
+        .scheme-preview {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+        }
+
+        .scheme-color {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .contrast-result {
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .select-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .current-color-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            border: 3px solid #fff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin: 0 auto 15px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .current-color-preview:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .color-wheel-container {
+                width: 280px;
+                height: 280px;
+            }
+
+            #colorWheel {
+                width: 280px !important;
+                height: 280px !important;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .color-picker-wrapper {
+            text-align: center;
+            position: relative;
+        }
+
+        .custom-color-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            border: 3px solid #fff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            margin: 0 auto 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .custom-color-preview:hover {
+            transform: scale(1.05);
+        }
+
+        .hidden-color-input {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            opacity: 0;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+        }
+
+        .color-label {
+            font-size: 12px;
+            color: #666;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎨 Color Palette Studio</h1>
+
+    <div class="main-content">
+        <div class="color-wheel-section">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Цветовое кольцо</h2>
+            <div class="color-wheel-container">
+                <canvas id="colorWheel" width="350" height="350"></canvas>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" onclick="addColorPoint()">+ Точка</button>
+                <button class="btn btn-secondary" onclick="clearPoints()">Очистить</button>
+                <button class="btn btn-secondary" onclick="randomPalette()">Случайная</button>
+            </div>
+
+            <div style="text-align: center;">
+                <div class="color-picker-wrapper">
+                    <div class="current-color-preview" id="currentColorPreview"></div>
+                    <input type="color" class="hidden-color-input" id="activeColorPicker" value="#FF5733">
+                    <p style="color: #666; font-size: 14px;">Активный цвет</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="converters-section">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Конвертер цветов</h2>
+
+            <div class="converter-group">
+                <h3>Основные форматы</h3>
+                <div class="input-row">
+                    <span class="input-label">HEX:</span>
+                    <input type="text" class="color-input" id="hexInput" placeholder="#FF5733">
+                    <button class="copy-btn" onclick="copyToClipboard('hexInput')">Copy</button>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">RGB:</span>
+                    <input type="text" class="color-input" id="rgbInput" placeholder="rgb(255, 87, 51)">
+                    <button class="copy-btn" onclick="copyToClipboard('rgbInput')">Copy</button>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">RGBA:</span>
+                    <input type="text" class="color-input" id="rgbaInput" placeholder="rgba(255, 87, 51, 1)">
+                    <button class="copy-btn" onclick="copyToClipboard('rgbaInput')">Copy</button>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">HSL:</span>
+                    <input type="text" class="color-input" id="hslInput" placeholder="hsl(12, 100%, 60%)">
+                    <button class="copy-btn" onclick="copyToClipboard('hslInput')">Copy</button>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">HSV:</span>
+                    <input type="text" class="color-input" id="hsvInput" placeholder="hsv(12, 80%, 100%)">
+                    <button class="copy-btn" onclick="copyToClipboard('hsvInput')">Copy</button>
+                </div>
+            </div>
+
+            <div class="converter-group">
+                <h3>Специальные форматы</h3>
+                <div class="input-row">
+                    <span class="input-label">RGB565:</span>
+                    <input type="text" class="color-input" id="rgb565Input" placeholder="0xF8A3">
+                    <button class="copy-btn" onclick="copyToClipboard('rgb565Input')">Copy</button>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">CMYK:</span>
+                    <input type="text" class="color-input" id="cmykInput" placeholder="cmyk(0%, 66%, 80%, 0%)">
+                    <button class="copy-btn" onclick="copyToClipboard('cmykInput')">Copy</button>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">LAB:</span>
+                    <input type="text" class="color-input" id="labInput" placeholder="lab(62, 52, 49)">
+                    <button class="copy-btn" onclick="copyToClipboard('labInput')">Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="palette-section">
+        <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Текущая палитра</h2>
+        <div class="palette-container" id="paletteContainer"></div>
+        <div style="text-align: center;">
+            <button class="btn btn-primary" onclick="exportPalette()">Экспорт JSON</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Импорт</button>
+            <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importPalette(event)">
+        </div>
+    </div>
+
+    <div class="tools-section">
+        <div class="tool-card">
+            <h3>🌈 Градиенты</h3>
+            <select class="select-input" id="gradientType">
+                <option value="linear">Линейный</option>
+                <option value="radial">Радиальный</option>
+                <option value="conic">Конический</option>
+            </select>
+            <div class="gradient-preview" id="gradientPreview"></div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="generateGradient()">Создать градиент</button>
+        </div>
+
+        <div class="tool-card">
+            <h3>🎯 Цветовые схемы</h3>
+            <select class="select-input" id="schemeType">
+                <option value="complementary">Комплементарная</option>
+                <option value="triadic">Триадическая</option>
+                <option value="tetradic">Тетрадическая</option>
+                <option value="analogous">Аналогичная</option>
+                <option value="monochromatic">Монохроматическая</option>
+            </select>
+            <div class="scheme-preview" id="schemePreview"></div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="generateColorScheme()">Создать схему</button>
+        </div>
+
+        <div class="tool-card">
+            <h3>📊 Анализ контрастности</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div class="color-picker-wrapper">
+                    <div class="custom-color-preview" id="contrastPreview1" style="background: #000000;"></div>
+                    <input type="color" class="hidden-color-input" id="contrastColor1" value="#000000">
+                    <span class="color-label">#000000</span>
+                </div>
+                <div class="color-picker-wrapper">
+                    <div class="custom-color-preview" id="contrastPreview2" style="background: #ffffff;"></div>
+                    <input type="color" class="hidden-color-input" id="contrastColor2" value="#ffffff">
+                    <span class="color-label">#ffffff</span>
+                </div>
+            </div>
+            <div class="contrast-result" id="contrastResult">Выберите цвета</div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="analyzeContrast()">Анализировать</button>
+        </div>
+
+        <div class="tool-card">
+            <h3>🎲 Генератор цветов</h3>
+            <select class="select-input" id="generatorType">
+                <option value="random">Случайные</option>
+                <option value="pastel">Пастельные</option>
+                <option value="vibrant">Яркие</option>
+                <option value="dark">Тёмные</option>
+                <option value="warm">Тёплые</option>
+                <option value="cool">Холодные</option>
+            </select>
+            <input type="range" min="3" max="10" value="5" class="color-input" id="colorCount" style="margin-bottom: 10px;">
+            <p style="text-align: center; margin-bottom: 15px;">Количество цветов: <span id="colorCountDisplay">5</span></p>
+            <button class="btn btn-primary" style="width: 100%;" onclick="generateColors()">Генерировать</button>
+        </div>
+    </div>
+</div>
+
+<div class="notification" id="notification"></div>
+
+<script>
+    class ColorStudio {
+        constructor() {
+            this.canvas = document.getElementById('colorWheel');
+            this.ctx = this.canvas.getContext('2d');
+            this.colorPoints = [];
+            this.currentColor = '#FF5733';
+            this.isDragging = false;
+            this.dragPoint = null;
+            this.activePoint = null; // добавляем отслеживание активной точки
+
+            this.init();
+            this.setupEventListeners();
+            this.drawColorWheel();
+            this.updateCurrentColor(this.currentColor);
+        }
+
+        init() {
+            // Создаем цветовое кольцо
+            this.drawColorWheel();
+
+            // Добавляем начальную точку
+            this.addColorPoint(175, 175, this.currentColor);
+
+            // Настраиваем слайдер количества цветов
+            document.getElementById('colorCount').addEventListener('input', (e) => {
+                document.getElementById('colorCountDisplay').textContent = e.target.value;
+            });
+        }
+
+        setupEventListeners() {
+            // События мыши для канваса
+            this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+            this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+            this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+            this.canvas.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
+
+            // События для инпутов конвертера
+            ['hexInput', 'rgbInput', 'rgbaInput', 'hslInput', 'hsvInput', 'rgb565Input', 'cmykInput', 'labInput'].forEach(id => {
+                document.getElementById(id).addEventListener('input', this.handleColorInput.bind(this));
+            });
+
+            // События для анализа контрастности
+            document.getElementById('contrastColor1').addEventListener('change', (e) => {
+                const color = e.target.value;
+                document.getElementById('contrastPreview1').style.backgroundColor = color;
+                e.target.parentElement.querySelector('.color-label').textContent = color;
+                this.analyzeContrast();
+            });
+
+            document.getElementById('contrastColor2').addEventListener('change', (e) => {
+                const color = e.target.value;
+                document.getElementById('contrastPreview2').style.backgroundColor = color;
+                e.target.parentElement.querySelector('.color-label').textContent = color;
+                this.analyzeContrast();
+            });
+
+            // События для активного цвета
+            document.getElementById('activeColorPicker').addEventListener('change', (e) => {
+                const color = e.target.value;
+                this.updateCurrentColor(color);
+
+                // Если есть активная точка - обновляем её
+                if (this.activePoint) {
+                    const rgb = this.hexToRgb(color);
+                    const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+                    // Вычисляем новую позицию на кольце для этого цвета
+                    const angle = ((hsl.h + 180) * Math.PI) / 180;
+                    const radius = 20 + (hsl.s / 100) * 130;
+                    const centerX = this.canvas.width / 2;
+                    const centerY = this.canvas.height / 2;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+
+                    // Обновляем активную точку
+                    this.activePoint.x = x;
+                    this.activePoint.y = y;
+                    this.activePoint.color = color;
+
+                    this.redrawPoints();
+                    this.updatePalette();
+                    this.showNotification('Точка обновлена!');
+                } else {
+                    // Если нет активной точки - создаем новую
+                    const rgb = this.hexToRgb(color);
+                    const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+                    const angle = ((hsl.h + 180) * Math.PI) / 180;
+                    const radius = 20 + (hsl.s / 100) * 130;
+                    const centerX = this.canvas.width / 2;
+                    const centerY = this.canvas.height / 2;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+
+                    const newPoint = this.addColorPoint(x, y, color);
+                    this.activePoint = newPoint;
+                    this.showNotification('Цвет добавлен в палитру!');
+                }
+            });
+        }
+
+        drawColorWheel() {
+            const centerX = this.canvas.width / 2;
+            const centerY = this.canvas.height / 2;
+            const radius = 150;
+
+            // Очищаем канвас
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // Рисуем цветовое кольцо более качественно
+            const imageData = this.ctx.createImageData(this.canvas.width, this.canvas.height);
+            const data = imageData.data;
+
+            for (let y = 0; y < this.canvas.height; y++) {
+                for (let x = 0; x < this.canvas.width; x++) {
+                    const dx = x - centerX;
+                    const dy = y - centerY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance <= radius && distance > 20) {
+                        const angle = Math.atan2(dy, dx);
+                        const hue = (angle + Math.PI) / (2 * Math.PI) * 360;
+                        const saturation = distance / radius;
+                        const lightness = 0.5;
+
+                        const rgb = this.hslToRgb(hue, saturation * 100, lightness * 100);
+
+                        const index = (y * this.canvas.width + x) * 4;
+                        data[index] = rgb.r;     // R
+                        data[index + 1] = rgb.g; // G
+                        data[index + 2] = rgb.b; // B
+                        data[index + 3] = 255;   // A
+                    }
+                }
+            }
+
+            this.ctx.putImageData(imageData, 0, 0);
+
+            // Рисуем белый центр
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
+            this.ctx.fillStyle = 'white';
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#ddd';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+        }
+
+        handleMouseDown(e) {
+            const rect = this.canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Проверяем, клик по точке
+            const clickedPoint = this.getPointAt(x, y);
+            if (clickedPoint) {
+                this.isDragging = true;
+                this.dragPoint = clickedPoint;
+                return;
+            }
+
+            // Проверяем, клик в области цветового кольца
+            const centerX = this.canvas.width / 2;
+            const centerY = this.canvas.height / 2;
+            const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+
+            if (distance <= 150 && distance > 20) {
+                const color = this.getColorAt(x, y);
+                this.addColorPoint(x, y, color);
+                this.updateCurrentColor(color);
+            }
+        }
+
+        handleMouseMove(e) {
+            const rect = this.canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (this.isDragging && this.dragPoint) {
+                // Перетаскиваем точку
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+
+                if (distance <= 150 && distance > 20) {
+                    this.dragPoint.x = x;
+                    this.dragPoint.y = y;
+                    this.dragPoint.color = this.getColorAt(x, y);
+                    this.updateCurrentColor(this.dragPoint.color);
+                    this.redrawPoints();
+                    this.updatePalette(); // 🔥 Вот чего не хватало!
+                }
+            } else {
+                // Проверяем, наводимся ли на точку для изменения курсора
+                const hoveredPoint = this.getPointAt(x, y);
+                if (hoveredPoint) {
+                    this.canvas.classList.add('hovering-point');
+                    this.canvas.classList.remove('dragging');
+                } else {
+                    this.canvas.classList.remove('hovering-point');
+                    if (!this.isDragging) {
+                        this.canvas.classList.remove('dragging');
+                    }
+                }
+            }
+        }
+
+        handleMouseLeave() {
+            this.canvas.classList.remove('hovering-point', 'dragging');
+            this.isDragging = false;
+            this.dragPoint = null;
+        }
+
+        handleMouseUp() {
+            this.isDragging = false;
+            this.dragPoint = null;
+        }
+
+        getPointAt(x, y) {
+            return this.colorPoints.find(point => {
+                const distance = Math.sqrt((x - point.x) ** 2 + (y - point.y) ** 2);
+                return distance <= 10;
+            });
+        }
+
+        getColorAt(x, y) {
+            // Вычисляем цвет математически вместо чтения из canvas
+            const centerX = this.canvas.width / 2;
+            const centerY = this.canvas.height / 2;
+            const dx = x - centerX;
+            const dy = y - centerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= 150 && distance > 20) {
+                const angle = Math.atan2(dy, dx);
+                const hue = (angle + Math.PI) / (2 * Math.PI) * 360;
+                const saturation = distance / 150; // нормализуем к радиусу
+                const lightness = 0.5;
+
+                const rgb = this.hslToRgb(hue, saturation * 100, lightness * 100);
+                return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+            }
+
+            return '#ffffff'; // белый для центра или вне области
+        }
+
+        addColorPoint(x = null, y = null, color = null) {
+            if (this.colorPoints.length >= 8) {
+                this.showNotification('Максимум 8 точек!');
+                return null;
+            }
+
+            if (x === null || y === null) {
+                // Случайная позиция в кольце
+                const angle = Math.random() * 2 * Math.PI;
+                const radius = 50 + Math.random() * 100;
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                x = centerX + radius * Math.cos(angle);
+                y = centerY + radius * Math.sin(angle);
+                color = this.getColorAt(x, y);
+            }
+
+            const point = {
+                id: Date.now(),
+                x: x,
+                y: y,
+                color: color
+            };
+
+            this.colorPoints.push(point);
+            this.redrawPoints();
+            this.updatePalette();
+
+            return point; // возвращаем созданную точку
+        }
+
+        redrawPoints() {
+            // Перерисовываем цветовое кольцо
+            this.drawColorWheel();
+
+            // Рисуем точки
+            this.colorPoints.forEach((point, index) => {
+                this.ctx.beginPath();
+                this.ctx.arc(point.x, point.y, 8, 0, 2 * Math.PI);
+                this.ctx.fillStyle = point.color;
+                this.ctx.fill();
+                this.ctx.strokeStyle = 'white';
+                this.ctx.lineWidth = 3;
+                this.ctx.stroke();
+
+                // Номер точки
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = 'bold 10px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(index + 1, point.x, point.y + 3);
+            });
+        }
+
+        clearPoints() {
+            this.colorPoints = [];
+            this.activePoint = null; // сбрасываем активную точку
+            this.drawColorWheel();
+            this.updatePalette();
+        }
+
+        randomPalette() {
+            this.clearPoints();
+            const count = 3 + Math.floor(Math.random() * 3); // 3-5 цветов
+            for (let i = 0; i < count; i++) {
+                this.addColorPoint();
+            }
+        }
+
+        updateCurrentColor(color) {
+            this.currentColor = color;
+            document.getElementById('currentColorPreview').style.backgroundColor = color;
+
+            // Синхронизируем скрытый color picker
+            const rgb = this.parseColor(color);
+            if (rgb) {
+                const hex = this.rgbToHex(rgb.r, rgb.g, rgb.b);
+                document.getElementById('activeColorPicker').value = hex;
+            }
+
+            this.updateColorInputs(color);
+        }
+
+        updateColorInputs(color) {
+            try {
+                const rgb = this.parseColor(color);
+                if (!rgb) return;
+
+                const hex = this.rgbToHex(rgb.r, rgb.g, rgb.b);
+                const hsl = this.rgbToHsl(rgb.r, rgb.g, rgb.b);
+                const hsv = this.rgbToHsv(rgb.r, rgb.g, rgb.b);
+                const rgb565 = this.rgbToRgb565(rgb.r, rgb.g, rgb.b);
+                const cmyk = this.rgbToCmyk(rgb.r, rgb.g, rgb.b);
+                const lab = this.rgbToLab(rgb.r, rgb.g, rgb.b);
+
+                document.getElementById('hexInput').value = hex;
+                document.getElementById('rgbInput').value = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+                document.getElementById('rgbaInput').value = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 1)`;
+                document.getElementById('hslInput').value = `hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`;
+                document.getElementById('hsvInput').value = `hsv(${Math.round(hsv.h)}, ${Math.round(hsv.s)}%, ${Math.round(hsv.v)}%)`;
+                document.getElementById('rgb565Input').value = rgb565;
+                document.getElementById('cmykInput').value = `cmyk(${Math.round(cmyk.c)}%, ${Math.round(cmyk.m)}%, ${Math.round(cmyk.y)}%, ${Math.round(cmyk.k)}%)`;
+                document.getElementById('labInput').value = `lab(${Math.round(lab.l)}, ${Math.round(lab.a)}, ${Math.round(lab.b)})`;
+            } catch (e) {
+                console.error('Ошибка обновления цветовых значений:', e);
+            }
+        }
+
+        updatePalette() {
+            const container = document.getElementById('paletteContainer');
+            container.innerHTML = '';
+
+            this.colorPoints.forEach((point, index) => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = point.color;
+
+                // Показываем активную точку с особой рамкой
+                if (point === this.activePoint) {
+                    swatch.style.border = '3px solid #667eea';
+                    swatch.style.transform = 'scale(1.1)';
+                }
+
+                swatch.onclick = () => {
+                    this.activePoint = point; // делаем точку активной при клике
+                    this.updateCurrentColor(point.color);
+                    this.updatePalette(); // перерисовываем палитру чтобы показать новую активную
+                };
+
+                const info = document.createElement('div');
+                info.className = 'color-info';
+                info.textContent = this.parseColor(point.color) ?
+                    this.rgbToHex(this.parseColor(point.color).r, this.parseColor(point.color).g, this.parseColor(point.color).b) :
+                    point.color;
+
+                swatch.appendChild(info);
+                container.appendChild(swatch);
+            });
+        }
+
+        handleColorInput(e) {
+            const value = e.target.value;
+            if (!value) return;
+
+            try {
+                let color;
+
+                if (e.target.id === 'hexInput') {
+                    color = value;
+                } else if (e.target.id === 'rgbInput' || e.target.id === 'rgbaInput') {
+                    color = value;
+                } else if (e.target.id === 'hslInput') {
+                    const hsl = this.parseHsl(value);
+                    if (hsl) {
+                        const rgb = this.hslToRgb(hsl.h, hsl.s, hsl.l);
+                        color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+                    }
+                } else if (e.target.id === 'hsvInput') {
+                    const hsv = this.parseHsv(value);
+                    if (hsv) {
+                        const rgb = this.hsvToRgb(hsv.h, hsv.s, hsv.v);
+                        color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+                    }
+                } else if (e.target.id === 'rgb565Input') {
+                    const rgb = this.rgb565ToRgb(value);
+                    if (rgb) {
+                        color = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+                    }
+                }
+
+                if (color) {
+                    this.updateCurrentColor(color);
+                }
+            } catch (e) {
+                // Игнорируем ошибки парсинга во время ввода
+            }
+        }
+
+        analyzeContrast() {
+            const color1 = document.getElementById('contrastColor1').value;
+            const color2 = document.getElementById('contrastColor2').value;
+
+            const rgb1 = this.hexToRgb(color1);
+            const rgb2 = this.hexToRgb(color2);
+
+            const contrast = this.calculateContrast(rgb1, rgb2);
+            const resultDiv = document.getElementById('contrastResult');
+
+            let rating, bgColor;
+            if (contrast >= 7) {
+                rating = 'AAA - Отлично';
+                bgColor = '#28a745';
+            } else if (contrast >= 4.5) {
+                rating = 'AA - Хорошо';
+                bgColor = '#ffc107';
+            } else if (contrast >= 3) {
+                rating = 'A - Удовлетворительно';
+                bgColor = '#fd7e14';
+            } else {
+                rating = 'Плохо';
+                bgColor = '#dc3545';
+            }
+
+            resultDiv.innerHTML = `${contrast.toFixed(2)}:1<br>${rating}`;
+            resultDiv.style.backgroundColor = bgColor;
+            resultDiv.style.color = 'white';
+        }
+
+        generateGradient() {
+            const type = document.getElementById('gradientType').value;
+            const preview = document.getElementById('gradientPreview');
+
+            if (this.colorPoints.length < 2) {
+                this.showNotification('Нужно минимум 2 цвета для градиента');
+                return;
+            }
+
+            const colors = this.colorPoints.map(point => point.color).join(', ');
+
+            let gradient;
+            switch (type) {
+                case 'linear':
+                    gradient = `linear-gradient(45deg, ${colors})`;
+                    break;
+                case 'radial':
+                    gradient = `radial-gradient(circle, ${colors})`;
+                    break;
+                case 'conic':
+                    gradient = `conic-gradient(${colors})`;
+                    break;
+            }
+
+            preview.style.background = gradient;
+
+            // Копируем CSS в буфер обмена
+            this.copyToClipboard(`background: ${gradient};`);
+            this.showNotification('CSS градиента скопирован в буфер обмена!');
+        }
+
+        generateColorScheme() {
+            const type = document.getElementById('schemeType').value;
+            const preview = document.getElementById('schemePreview');
+
+            if (this.colorPoints.length === 0) {
+                this.showNotification('Добавьте базовый цвет');
+                return;
+            }
+
+            const baseColor = this.parseColor(this.colorPoints[0].color);
+            const baseHsl = this.rgbToHsl(baseColor.r, baseColor.g, baseColor.b);
+
+            let colors = [];
+
+            switch (type) {
+                case 'complementary':
+                    colors = [
+                        baseHsl,
+                        { h: (baseHsl.h + 180) % 360, s: baseHsl.s, l: baseHsl.l }
+                    ];
+                    break;
+                case 'triadic':
+                    colors = [
+                        baseHsl,
+                        { h: (baseHsl.h + 120) % 360, s: baseHsl.s, l: baseHsl.l },
+                        { h: (baseHsl.h + 240) % 360, s: baseHsl.s, l: baseHsl.l }
+                    ];
+                    break;
+                case 'tetradic':
+                    colors = [
+                        baseHsl,
+                        { h: (baseHsl.h + 90) % 360, s: baseHsl.s, l: baseHsl.l },
+                        { h: (baseHsl.h + 180) % 360, s: baseHsl.s, l: baseHsl.l },
+                        { h: (baseHsl.h + 270) % 360, s: baseHsl.s, l: baseHsl.l }
+                    ];
+                    break;
+                case 'analogous':
+                    colors = [
+                        { h: (baseHsl.h - 30 + 360) % 360, s: baseHsl.s, l: baseHsl.l },
+                        baseHsl,
+                        { h: (baseHsl.h + 30) % 360, s: baseHsl.s, l: baseHsl.l }
+                    ];
+                    break;
+                case 'monochromatic':
+                    colors = [
+                        { h: baseHsl.h, s: baseHsl.s, l: Math.max(20, baseHsl.l - 30) },
+                        { h: baseHsl.h, s: baseHsl.s, l: Math.max(10, baseHsl.l - 15) },
+                        baseHsl,
+                        { h: baseHsl.h, s: baseHsl.s, l: Math.min(85, baseHsl.l + 15) },
+                        { h: baseHsl.h, s: baseHsl.s, l: Math.min(95, baseHsl.l + 30) }
+                    ];
+                    break;
+            }
+
+            // Очищаем текущую палитру и создаем новую
+            this.clearPoints();
+
+            // Добавляем цвета схемы как точки на кольце
+            colors.forEach((hsl, index) => {
+                const rgb = this.hslToRgb(hsl.h, hsl.s, hsl.l);
+                const hex = this.rgbToHex(rgb.r, rgb.g, rgb.b);
+
+                // Вычисляем ПРАВИЛЬНУЮ позицию на цветовом кольце для этого цвета
+                const hue = hsl.h;
+                const saturation = hsl.s / 100;
+
+                const angle = ((hue + 180) * Math.PI) / 180; // разворачиваем на 180°
+                const radius = 20 + saturation * 130; // от центра (20px) до края (150px)
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+
+                this.addColorPoint(x, y, hex);
+            });
+
+            // Обновляем preview
+            preview.innerHTML = '';
+            colors.forEach(hsl => {
+                const rgb = this.hslToRgb(hsl.h, hsl.s, hsl.l);
+                const hex = this.rgbToHex(rgb.r, rgb.g, rgb.b);
+
+                const colorDiv = document.createElement('div');
+                colorDiv.className = 'scheme-color';
+                colorDiv.style.backgroundColor = hex;
+                colorDiv.title = hex;
+                colorDiv.onclick = () => {
+                    this.updateCurrentColor(hex);
+                    this.copyToClipboard(hex);
+                    this.showNotification(`${hex} скопирован!`);
+                };
+
+                preview.appendChild(colorDiv);
+            });
+
+            this.showNotification(`Создана ${type} схема с ${colors.length} цветами!`);
+        }
+
+        generateColors() {
+            const type = document.getElementById('generatorType').value;
+            const count = parseInt(document.getElementById('colorCount').value);
+
+            this.clearPoints();
+
+            for (let i = 0; i < count; i++) {
+                let color;
+
+                switch (type) {
+                    case 'random':
+                        color = this.generateRandomColor();
+                        break;
+                    case 'pastel':
+                        color = this.generatePastelColor();
+                        break;
+                    case 'vibrant':
+                        color = this.generateVibrantColor();
+                        break;
+                    case 'dark':
+                        color = this.generateDarkColor();
+                        break;
+                    case 'warm':
+                        color = this.generateWarmColor();
+                        break;
+                    case 'cool':
+                        color = this.generateCoolColor();
+                        break;
+                }
+
+                // Добавляем цвет как точку на случайной позиции в кольце
+                const angle = Math.random() * 2 * Math.PI;
+                const radius = 50 + Math.random() * 100;
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+
+                this.addColorPoint(x, y, color);
+            }
+        }
+
+        generateRandomColor() {
+            const r = Math.floor(Math.random() * 256);
+            const g = Math.floor(Math.random() * 256);
+            const b = Math.floor(Math.random() * 256);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        generatePastelColor() {
+            const h = Math.random() * 360;
+            const s = 25 + Math.random() * 30; // 25-55%
+            const l = 75 + Math.random() * 20; // 75-95%
+            const rgb = this.hslToRgb(h, s, l);
+            return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+        }
+
+        generateVibrantColor() {
+            const h = Math.random() * 360;
+            const s = 70 + Math.random() * 30; // 70-100%
+            const l = 40 + Math.random() * 30; // 40-70%
+            const rgb = this.hslToRgb(h, s, l);
+            return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+        }
+
+        generateDarkColor() {
+            const h = Math.random() * 360;
+            const s = 30 + Math.random() * 50; // 30-80%
+            const l = 10 + Math.random() * 30; // 10-40%
+            const rgb = this.hslToRgb(h, s, l);
+            return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+        }
+
+        generateWarmColor() {
+            const h = Math.random() * 60; // 0-60 (красные, оранжевые, желтые)
+            const s = 50 + Math.random() * 50; // 50-100%
+            const l = 40 + Math.random() * 40; // 40-80%
+            const rgb = this.hslToRgb(h, s, l);
+            return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+        }
+
+        generateCoolColor() {
+            const h = 180 + Math.random() * 120; // 180-300 (синие, фиолетовые)
+            const s = 50 + Math.random() * 50; // 50-100%
+            const l = 40 + Math.random() * 40; // 40-80%
+            const rgb = this.hslToRgb(h, s, l);
+            return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+        }
+
+        exportPalette() {
+            const palette = this.colorPoints.map(point => {
+                const rgb = this.parseColor(point.color);
+                return {
+                    hex: this.rgbToHex(rgb.r, rgb.g, rgb.b),
+                    rgb: point.color,
+                    position: { x: point.x, y: point.y }
+                };
+            });
+
+            const dataStr = JSON.stringify(palette, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'color-palette.json';
+            link.click();
+
+            URL.revokeObjectURL(url);
+            this.showNotification('Палитра экспортирована!');
+        }
+
+        importPalette(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const palette = JSON.parse(e.target.result);
+                    this.clearPoints();
+
+                    palette.forEach(color => {
+                        this.addColorPoint(color.position.x, color.position.y, color.rgb);
+                    });
+
+                    this.showNotification('Палитра импортирована!');
+                } catch (error) {
+                    this.showNotification('Ошибка импорта палитры');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        copyToClipboard(text) {
+            if (typeof text !== 'string') {
+                const input = document.getElementById(text);
+                text = input.value;
+
+                // Визуальная обратная связь
+                const btn = input.parentElement.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 1000);
+            }
+
+            navigator.clipboard.writeText(text).catch(() => {
+                // Fallback для старых браузеров
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            });
+        }
+
+        showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Утилиты для конвертации цветов
+        parseColor(color) {
+            if (color.startsWith('#')) {
+                return this.hexToRgb(color);
+            } else if (color.startsWith('rgb')) {
+                const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+                if (match) {
+                    return {
+                        r: parseInt(match[1]),
+                        g: parseInt(match[2]),
+                        b: parseInt(match[3])
+                    };
+                }
+            }
+            return null;
+        }
+
+        hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        rgbToHex(r, g, b) {
+            return "#" + [r, g, b].map(x => {
+                const hex = Math.round(x).toString(16);
+                return hex.length === 1 ? "0" + hex : hex;
+            }).join("");
+        }
+
+        rgbToHsl(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+
+            return { h: h * 360, s: s * 100, l: l * 100 };
+        }
+
+        hslToRgb(h, s, l) {
+            h /= 360;
+            s /= 100;
+            l /= 100;
+
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+
+            let r, g, b;
+
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+
+            return {
+                r: Math.round(r * 255),
+                g: Math.round(g * 255),
+                b: Math.round(b * 255)
+            };
+        }
+
+        rgbToHsv(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const diff = max - min;
+
+            let h = 0;
+            let s = max === 0 ? 0 : diff / max;
+            let v = max;
+
+            if (diff !== 0) {
+                switch (max) {
+                    case r: h = ((g - b) / diff) % 6; break;
+                    case g: h = (b - r) / diff + 2; break;
+                    case b: h = (r - g) / diff + 4; break;
+                }
+                h *= 60;
+                if (h < 0) h += 360;
+            }
+
+            return { h: h, s: s * 100, v: v * 100 };
+        }
+
+        hsvToRgb(h, s, v) {
+            h /= 360;
+            s /= 100;
+            v /= 100;
+
+            const i = Math.floor(h * 6);
+            const f = h * 6 - i;
+            const p = v * (1 - s);
+            const q = v * (1 - f * s);
+            const t = v * (1 - (1 - f) * s);
+
+            let r, g, b;
+
+            switch (i % 6) {
+                case 0: r = v; g = t; b = p; break;
+                case 1: r = q; g = v; b = p; break;
+                case 2: r = p; g = v; b = t; break;
+                case 3: r = p; g = q; b = v; break;
+                case 4: r = t; g = p; b = v; break;
+                case 5: r = v; g = p; b = q; break;
+            }
+
+            return {
+                r: Math.round(r * 255),
+                g: Math.round(g * 255),
+                b: Math.round(b * 255)
+            };
+        }
+
+        rgbToRgb565(r, g, b) {
+            const r5 = Math.round(r * 31 / 255);
+            const g6 = Math.round(g * 63 / 255);
+            const b5 = Math.round(b * 31 / 255);
+            const rgb565 = (r5 << 11) | (g6 << 5) | b5;
+            return '0x' + rgb565.toString(16).toUpperCase().padStart(4, '0');
+        }
+
+        rgb565ToRgb(rgb565Str) {
+            const rgb565 = parseInt(rgb565Str, 16);
+            const r = ((rgb565 & 0xF800) >> 11) * 255 / 31;
+            const g = ((rgb565 & 0x07E0) >> 5) * 255 / 63;
+            const b = (rgb565 & 0x001F) * 255 / 31;
+            return {
+                r: Math.round(r),
+                g: Math.round(g),
+                b: Math.round(b)
+            };
+        }
+
+        rgbToCmyk(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+
+            const k = 1 - Math.max(r, Math.max(g, b));
+            const c = (1 - r - k) / (1 - k) || 0;
+            const m = (1 - g - k) / (1 - k) || 0;
+            const y = (1 - b - k) / (1 - k) || 0;
+
+            return {
+                c: c * 100,
+                m: m * 100,
+                y: y * 100,
+                k: k * 100
+            };
+        }
+
+        rgbToLab(r, g, b) {
+            // Упрощенная конвертация RGB -> LAB
+            r /= 255;
+            g /= 255;
+            b /= 255;
+
+            // sRGB -> XYZ
+            r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+            g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+            b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+
+            let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
+            let y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.00000;
+            let z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+
+            x = x > 0.008856 ? Math.pow(x, 1/3) : (7.787 * x) + 16/116;
+            y = y > 0.008856 ? Math.pow(y, 1/3) : (7.787 * y) + 16/116;
+            z = z > 0.008856 ? Math.pow(z, 1/3) : (7.787 * z) + 16/116;
+
+            return {
+                l: (116 * y) - 16,
+                a: 500 * (x - y),
+                b: 200 * (y - z)
+            };
+        }
+
+        parseHsl(hslStr) {
+            const match = hslStr.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+            if (match) {
+                return {
+                    h: parseInt(match[1]),
+                    s: parseInt(match[2]),
+                    l: parseInt(match[3])
+                };
+            }
+            return null;
+        }
+
+        parseHsv(hsvStr) {
+            const match = hsvStr.match(/hsv\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+            if (match) {
+                return {
+                    h: parseInt(match[1]),
+                    s: parseInt(match[2]),
+                    v: parseInt(match[3])
+                };
+            }
+            return null;
+        }
+
+        calculateContrast(rgb1, rgb2) {
+            const luminance = (rgb) => {
+                const [r, g, b] = [rgb.r, rgb.g, rgb.b].map(c => {
+                    c /= 255;
+                    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+                });
+                return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            };
+
+            const lum1 = luminance(rgb1);
+            const lum2 = luminance(rgb2);
+            const brightest = Math.max(lum1, lum2);
+            const darkest = Math.min(lum1, lum2);
+
+            return (brightest + 0.05) / (darkest + 0.05);
+        }
+    }
+
+    // Глобальные функции для кнопок
+    let colorStudio;
+
+    window.onload = function() {
+        colorStudio = new ColorStudio();
+    };
+
+    function addColorPoint() {
+        colorStudio.addColorPoint();
+    }
+
+    function clearPoints() {
+        colorStudio.clearPoints();
+    }
+
+    function randomPalette() {
+        colorStudio.randomPalette();
+    }
+
+    function copyToClipboard(elementId) {
+        colorStudio.copyToClipboard(elementId);
+    }
+
+    function exportPalette() {
+        colorStudio.exportPalette();
+    }
+
+    function importPalette(event) {
+        colorStudio.importPalette(event);
+    }
+
+    function generateGradient() {
+        colorStudio.generateGradient();
+    }
+
+    function generateColorScheme() {
+        colorStudio.generateColorScheme();
+    }
+
+    function analyzeContrast() {
+        colorStudio.analyzeContrast();
+    }
+
+    function generateColors() {
+        colorStudio.generateColors();
+    }
+</script>
+</body>
+</html>

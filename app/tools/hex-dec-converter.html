@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конвертер HEX-DEC-BIN</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .converter-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+            font-size: 1.1em;
+        }
+
+        input {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .options {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .display-panel {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            line-height: 1.6;
+        }
+
+        .binary-grouped {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .binary-byte {
+            background: rgba(52, 152, 219, 0.3);
+            padding: 8px 10px;
+            border-radius: 5px;
+            border: 1px solid #3498db;
+            font-size: 0.9em;
+            cursor: help;
+            transition: all 0.3s ease;
+        }
+
+        .binary-byte:hover {
+            background: rgba(52, 152, 219, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 20px auto;
+            display: block;
+        }
+
+        .clear-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(238, 90, 36, 0.4);
+        }
+
+        .utf8-panel {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid #2ecc71;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .utf8-error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .options {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔄 Конвертер HEX-DEC-BIN</h1>
+
+    <div class="converter-grid">
+        <div class="input-group">
+            <label for="hexInput">Шестнадцатеричное (HEX):</label>
+            <input type="text" id="hexInput" placeholder="Например: FF, 0xFF, DEADBEEF">
+        </div>
+
+        <div class="input-group">
+            <label for="decInput">Десятичное (DEC):</label>
+            <input type="text" id="decInput" placeholder="Например: 255, -128">
+        </div>
+
+        <div class="input-group">
+            <label for="binInput">Двоичное (BIN):</label>
+            <input type="text" id="binInput" placeholder="Например: 11111111, 0b10101010">
+        </div>
+    </div>
+
+    <div class="options">
+        <div class="option-group">
+            <label>Порядок байтов:</label>
+            <select id="byteOrder">
+                <option value="big">Big Endian</option>
+                <option value="little">Little Endian</option>
+            </select>
+        </div>
+
+        <div class="option-group">
+            <label>Интерпретация:</label>
+            <select id="interpretation">
+                <option value="unsigned">Unsigned</option>
+                <option value="signed">Signed (Two's complement)</option>
+            </select>
+        </div>
+    </div>
+
+    <button class="clear-btn" onclick="clearAll()">🗑️ Очистить всё</button>
+
+    <div class="display-panel" id="hexDisplay">
+        <div>Шестнадцатеричное представление появится здесь</div>
+    </div>
+
+    <div class="display-panel" id="binaryDisplay">
+        <div>Двоичное представление появится здесь</div>
+    </div>
+
+    <div class="display-panel" id="utf8Display">
+        <div>UTF-8 интерпретация появится здесь</div>
+    </div>
+
+    <div class="info-panel">
+        <h3>📊 Информация о представлении</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Количество бит</div>
+                <div class="info-value" id="bitCount">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Количество байт</div>
+                <div class="info-value" id="byteCount">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Тип Java</div>
+                <div class="info-value" id="javaType">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Диапазон значений</div>
+                <div class="info-value" id="valueRange">-</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let isUpdating = false;
+
+    const hexInput = document.getElementById('hexInput');
+    const decInput = document.getElementById('decInput');
+    const binInput = document.getElementById('binInput');
+    const byteOrder = document.getElementById('byteOrder');
+    const interpretation = document.getElementById('interpretation');
+
+    // Event listeners
+    hexInput.addEventListener('input', () => convertFrom('hex'));
+    decInput.addEventListener('input', () => convertFrom('dec'));
+    binInput.addEventListener('input', () => convertFrom('bin'));
+
+    byteOrder.addEventListener('change', () => {
+        if (hexInput.value.trim()) {
+            convertFrom('hex');
+        } else if (binInput.value.trim()) {
+            convertFrom('bin');
+        } else {
+            updateDisplay();
+        }
+    });
+
+    interpretation.addEventListener('change', () => {
+        if (hexInput.value.trim()) {
+            convertFrom('hex');
+        } else if (binInput.value.trim()) {
+            convertFrom('bin');
+        } else {
+            updateDisplay();
+        }
+    });
+
+    function convertFrom(source) {
+        if (isUpdating) return;
+        isUpdating = true;
+
+        try {
+            let value = null;
+
+            if (source === 'hex' && hexInput.value.trim()) {
+                const hex = hexInput.value.trim().replace(/^0x/i, '');
+                if (/^[0-9a-f]+$/i.test(hex)) {
+                    value = parseHexWithEndianness(hex);
+                }
+            } else if (source === 'dec' && decInput.value.trim()) {
+                const dec = decInput.value.trim();
+                if (/^-?\d+$/.test(dec)) {
+                    value = parseInt(dec, 10);
+                }
+            } else if (source === 'bin' && binInput.value.trim()) {
+                const bin = binInput.value.trim().replace(/^0b/i, '');
+                if (/^[01]+$/.test(bin)) {
+                    value = parseBinWithEndianness(bin);
+                }
+            }
+
+            if (value !== null) {
+                updateAllFields(value, source);
+                updateDisplay();
+            } else {
+                clearInfo();
+            }
+        } catch (e) {
+            clearInfo();
+        }
+
+        isUpdating = false;
+    }
+
+    function parseHexWithEndianness(hex) {
+        if (hex.length % 2 !== 0) {
+            hex = '0' + hex;
+        }
+
+        if (byteOrder.value === 'little') {
+            const bytes = [];
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes.push(hex.substr(i, 2));
+            }
+            hex = bytes.reverse().join('');
+        }
+
+        let value = parseInt(hex, 16);
+
+        if (interpretation.value === 'signed') {
+            const bitCount = hex.length * 4;
+            const maxSigned = Math.pow(2, bitCount - 1);
+            const maxUnsigned = Math.pow(2, bitCount);
+
+            if (value >= maxSigned) {
+                value = value - maxUnsigned;
+            }
+        }
+
+        return value;
+    }
+
+    function parseBinWithEndianness(bin) {
+        const paddedLength = Math.ceil(bin.length / 8) * 8;
+        bin = bin.padStart(paddedLength, '0');
+
+        if (byteOrder.value === 'little') {
+            const bytes = [];
+            for (let i = 0; i < bin.length; i += 8) {
+                bytes.push(bin.substr(i, 8));
+            }
+            bin = bytes.reverse().join('');
+        }
+
+        let value = parseInt(bin, 2);
+
+        if (interpretation.value === 'signed') {
+            const bitCount = bin.length;
+            const maxSigned = Math.pow(2, bitCount - 1);
+            const maxUnsigned = Math.pow(2, bitCount);
+
+            if (value >= maxSigned) {
+                value = value - maxUnsigned;
+            }
+        }
+
+        return value;
+    }
+
+    function updateAllFields(value, source) {
+        if (source !== 'hex') {
+            hexInput.value = formatHexWithEndianness(value);
+        }
+        if (source !== 'dec') {
+            decInput.value = value.toString();
+        }
+        if (source !== 'bin') {
+            binInput.value = formatBinWithEndianness(value);
+        }
+    }
+
+    function formatHexWithEndianness(value) {
+        let originalHex = '';
+        if (hexInput.value.trim()) {
+            originalHex = hexInput.value.trim().replace(/^0x/i, '');
+            if (originalHex.length % 2 !== 0) {
+                originalHex = '0' + originalHex;
+            }
+        }
+
+        let hex;
+        if (value < 0) {
+            const minBits = originalHex.length > 0 ? originalHex.length * 4 : 32;
+            const bitCount = Math.max(minBits, 32);
+            const maxUnsigned = Math.pow(2, bitCount);
+            hex = (value + maxUnsigned).toString(16);
+        } else {
+            hex = value.toString(16);
+        }
+
+        hex = hex.toUpperCase();
+
+        const targetLength = originalHex.length > 0 ? originalHex.length :
+            (hex.length % 2 !== 0 ? hex.length + 1 : hex.length);
+        hex = hex.padStart(targetLength, '0');
+
+        if (byteOrder.value === 'little') {
+            const bytes = [];
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes.push(hex.substr(i, 2));
+            }
+            hex = bytes.reverse().join('');
+        }
+
+        return hex;
+    }
+
+    function formatBinWithEndianness(value) {
+        let bin;
+        if (value < 0) {
+            const bitCount = Math.max(8, Math.ceil(Math.log2(Math.abs(value)) / 8) * 8);
+            const maxUnsigned = Math.pow(2, bitCount);
+            bin = (value + maxUnsigned).toString(2);
+        } else {
+            bin = value.toString(2);
+        }
+
+        const paddedLength = Math.ceil(bin.length / 8) * 8;
+        bin = bin.padStart(paddedLength, '0');
+
+        if (byteOrder.value === 'little') {
+            const bytes = [];
+            for (let i = 0; i < bin.length; i += 8) {
+                bytes.push(bin.substr(i, 8));
+            }
+            bin = bytes.reverse().join('');
+        }
+
+        return bin;
+    }
+
+    function getCurrentValue() {
+        if (decInput.value.trim()) {
+            const dec = decInput.value.trim();
+            if (/^-?\d+$/.test(dec)) {
+                return parseInt(dec, 10);
+            }
+        }
+        return null;
+    }
+
+    function updateDisplay() {
+        const value = getCurrentValue();
+        if (value === null) return;
+
+        updateHexDisplay();
+        updateBinaryDisplay();
+        updateUtf8Display();
+        updateInfo(value);
+    }
+
+    function updateHexDisplay() {
+        let hex = hexInput.value.trim().replace(/^0x/i, '');
+
+        if (!hex) {
+            document.getElementById('hexDisplay').innerHTML = '<div>Шестнадцатеричное представление появится здесь</div>';
+            return;
+        }
+
+        if (hex.length % 2 !== 0) {
+            hex = '0' + hex;
+        }
+
+        const bytes = [];
+        for (let i = 0; i < hex.length; i += 2) {
+            bytes.push(hex.substr(i, 2));
+        }
+
+        let displayBytes = [...bytes];
+        if (byteOrder.value === 'little') {
+            displayBytes.reverse();
+        }
+
+        document.getElementById('hexDisplay').innerHTML = `
+                <div style="margin-bottom: 10px;">
+                    <strong>Шестнадцатеричное представление (${byteOrder.value === 'big' ? 'Big' : 'Little'} Endian):</strong>
+                </div>
+                <div class="binary-grouped">
+                    ${displayBytes.map((byte, index) => {
+            const position = byteOrder.value === 'big' ? index : displayBytes.length - 1 - index;
+            const decimal = parseInt(byte, 16);
+            return `<span class="binary-byte" title="Байт ${position}: ${decimal} dec">${byte}</span>`;
+        }).join('')}
+                </div>
+                <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                    Порядок байтов: ${displayBytes.join(' ')}<br>
+                    ${byteOrder.value === 'big' ? 'Старший байт слева' : 'Младший байт слева'}
+                </div>
+            `;
+    }
+
+    function updateBinaryDisplay() {
+        let binary = binInput.value.trim().replace(/^0b/i, '');
+
+        if (!binary) {
+            document.getElementById('binaryDisplay').innerHTML = '<div>Двоичное представление появится здесь</div>';
+            return;
+        }
+
+        const paddedLength = Math.max(8, Math.ceil(binary.length / 8) * 8);
+        binary = binary.padStart(paddedLength, '0');
+
+        const bytes = [];
+        for (let i = 0; i < binary.length; i += 8) {
+            bytes.push(binary.substr(i, 8));
+        }
+
+        let displayBytes = [...bytes];
+        if (byteOrder.value === 'little') {
+            displayBytes.reverse();
+        }
+
+        document.getElementById('binaryDisplay').innerHTML = `
+                <div style="margin-bottom: 10px;">
+                    <strong>Двоичное представление (${byteOrder.value === 'big' ? 'Big' : 'Little'} Endian):</strong>
+                </div>
+                <div class="binary-grouped">
+                    ${displayBytes.map((byte, index) => {
+            const position = byteOrder.value === 'big' ? index : displayBytes.length - 1 - index;
+            return `<span class="binary-byte" title="Байт ${position}">${byte}</span>`;
+        }).join('')}
+                </div>
+                <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                    Порядок байтов: ${displayBytes.join(' ')}<br>
+                    ${byteOrder.value === 'big' ? 'Старший байт слева' : 'Младший байт слева'}
+                </div>
+            `;
+    }
+
+    function updateUtf8Display() {
+        const hex = hexInput.value.trim().replace(/^0x/i, '');
+
+        if (!hex) {
+            document.getElementById('utf8Display').innerHTML = '<div>UTF-8 интерпретация появится здесь</div>';
+            return;
+        }
+
+        try {
+            let paddedHex = hex.length % 2 !== 0 ? '0' + hex : hex;
+
+            const bytes = [];
+            for (let i = 0; i < paddedHex.length; i += 2) {
+                bytes.push(parseInt(paddedHex.substr(i, 2), 16));
+            }
+
+            let utf8String = '';
+            let validUtf8 = true;
+            let byteInfo = [];
+
+            try {
+                const uint8Array = new Uint8Array(bytes);
+                utf8String = new TextDecoder('utf-8', { fatal: true }).decode(uint8Array);
+
+                for (let i = 0; i < bytes.length; i++) {
+                    const byte = bytes[i];
+                    const isPrintable = byte >= 32 && byte <= 126;
+                    byteInfo.push({
+                        hex: byte.toString(16).toUpperCase().padStart(2, '0'),
+                        dec: byte,
+                        char: isPrintable ? String.fromCharCode(byte) : '•'
+                    });
+                }
+            } catch (e) {
+                validUtf8 = false;
+
+                for (let i = 0; i < bytes.length; i++) {
+                    const byte = bytes[i];
+                    const isPrintable = byte >= 32 && byte <= 126;
+                    byteInfo.push({
+                        hex: byte.toString(16).toUpperCase().padStart(2, '0'),
+                        dec: byte,
+                        char: isPrintable ? String.fromCharCode(byte) : '•'
+                    });
+                }
+            }
+
+            document.getElementById('utf8Display').innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <strong>UTF-8 интерпретация:</strong>
+                    </div>
+                    ${validUtf8 ? `
+                        <div class="utf8-panel">
+                            <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; font-family: 'Segoe UI', sans-serif;">
+                                "${utf8String}"
+                            </div>
+                            <div style="font-size: 0.9em; opacity: 0.8;">
+                                Валидная UTF-8 строка (${utf8String.length} символов)
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="utf8-error">
+                            <div style="font-size: 1em; font-weight: bold; margin-bottom: 5px;">
+                                Невалидная UTF-8 последовательность
+                            </div>
+                            <div style="font-size: 0.9em; opacity: 0.8;">
+                                Показаны отдельные байты как ASCII
+                            </div>
+                        </div>
+                    `}
+                    <div class="binary-grouped">
+                        ${byteInfo.map(info => `
+                            <span class="binary-byte" title="HEX: ${info.hex}, DEC: ${info.dec}, ASCII: ${info.char}">
+                                ${info.hex}<br>
+                                <span style="font-size: 0.8em; opacity: 0.7;">'${info.char}'</span>
+                            </span>
+                        `).join('')}
+                    </div>
+                    <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                        Каждый блок: HEX байт / ASCII символ<br>
+                        • = непечатаемый символ
+                    </div>
+                `;
+        } catch (e) {
+            document.getElementById('utf8Display').innerHTML = `
+                    <div class="utf8-error">
+                        <strong>Ошибка при декодировании:</strong> ${e.message}
+                    </div>
+                `;
+        }
+    }
+
+    function updateInfo(value) {
+        const isSigned = interpretation.value === 'signed';
+        let binary;
+
+        if (isSigned && value < 0) {
+            binary = (value >>> 0).toString(2);
+        } else {
+            binary = Math.abs(value).toString(2);
+        }
+
+        const bitCount = Math.max(8, Math.ceil(binary.length / 8) * 8);
+        const byteCount = bitCount / 8;
+
+        document.getElementById('bitCount').textContent = bitCount;
+        document.getElementById('byteCount').textContent = byteCount;
+
+        let javaType = 'long';
+        let range = '';
+
+        if (isSigned) {
+            if (value >= -128 && value <= 127 && bitCount <= 8) {
+                javaType = 'byte';
+                range = '-128 .. 127';
+            } else if (value >= -32768 && value <= 32767 && bitCount <= 16) {
+                javaType = 'short';
+                range = '-32,768 .. 32,767';
+            } else if (value >= -2147483648 && value <= 2147483647 && bitCount <= 32) {
+                javaType = 'int';
+                range = '-2,147,483,648 .. 2,147,483,647';
+            } else {
+                javaType = 'long';
+                range = '-9,223,372,036,854,775,808 .. 9,223,372,036,854,775,807';
+            }
+        } else {
+            if (value <= 255 && bitCount <= 8) {
+                javaType = 'byte (unsigned)';
+                range = '0 .. 255';
+            } else if (value <= 65535 && bitCount <= 16) {
+                javaType = 'short (unsigned)';
+                range = '0 .. 65,535';
+            } else if (value <= 4294967295 && bitCount <= 32) {
+                javaType = 'int (unsigned)';
+                range = '0 .. 4,294,967,295';
+            } else {
+                javaType = 'long (unsigned)';
+                range = '0 .. 18,446,744,073,709,551,615';
+            }
+        }
+
+        document.getElementById('javaType').textContent = javaType;
+        document.getElementById('valueRange').textContent = range;
+    }
+
+    function clearInfo() {
+        document.getElementById('bitCount').textContent = '-';
+        document.getElementById('byteCount').textContent = '-';
+        document.getElementById('javaType').textContent = '-';
+        document.getElementById('valueRange').textContent = '-';
+        document.getElementById('hexDisplay').innerHTML = '<div>Шестнадцатеричное представление появится здесь</div>';
+        document.getElementById('binaryDisplay').innerHTML = '<div>Двоичное представление появится здесь</div>';
+        document.getElementById('utf8Display').innerHTML = '<div>UTF-8 интерпретация появится здесь</div>';
+    }
+
+    function clearAll() {
+        hexInput.value = '';
+        decInput.value = '';
+        binInput.value = '';
+        clearInfo();
+    }
+</script>
+</body>
+</html>
+</html>

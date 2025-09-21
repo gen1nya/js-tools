@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Wallet Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/elliptic/6.5.4/elliptic.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .generate-btn {
+            display: block;
+            width: 200px;
+            margin: 0 auto 40px auto;
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(550px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .wallet-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 2px solid #f0f0f0;
+            transition: all 0.3s ease;
+        }
+
+        .wallet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+
+        .wallet-title {
+            font-size: 1.4em;
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            font-weight: bold;
+        }
+
+        .key-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .key-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .key-value {
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .qr-container {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .qr-code {
+
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .warning {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.3);
+        }
+
+        .warning h3 {
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .warning p {
+            margin-bottom: 5px;
+            font-size: 1em;
+        }
+
+        @media (max-width: 768px) {
+            .wallet-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .key-value {
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔐 Bitcoin Wallet Generator</h1>
+        <p>Secure Bitcoin wallet generation with private keys</p>
+    </div>
+
+    <div class="warning">
+        <h3>⚠️ IMPORTANT SECURITY WARNING</h3>
+        <p>• Use this generator only in offline mode</p>
+        <p>• Never generate wallets for real use while online</p>
+        <p>• Save private keys in a secure location</p>
+        <p>• This tool is for educational purposes only</p>
+    </div>
+
+    <button class="generate-btn" onclick="generateWallet()">🎲 Generate New Wallet</button>
+
+    <div class="wallet-grid" id="walletContainer">
+        <!-- Wallets will be generated here -->
+    </div>
+</div>
+
+<script>
+    // Secure random bytes generation
+    function generateSecureRandom(length) {
+        if (window.crypto && window.crypto.getRandomValues) {
+            const array = new Uint8Array(length);
+            window.crypto.getRandomValues(array);
+            return array;
+        } else {
+            // Fallback for older browsers
+            const array = new Uint8Array(length);
+            for (let i = 0; i < length; i++) {
+                array[i] = Math.floor(Math.random() * 256);
+            }
+            return array;
+        }
+    }
+
+    // Convert to hex
+    function bytesToHex(bytes) {
+        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // Convert hex to bytes
+    function hexToBytes(hex) {
+        const bytes = [];
+        for (let i = 0; i < hex.length; i += 2) {
+            bytes.push(parseInt(hex.substr(i, 2), 16));
+        }
+        return new Uint8Array(bytes);
+    }
+
+    // Base58 alphabet for Bitcoin
+    const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+    // Base58 encoding
+    function base58Encode(bytes) {
+        if (bytes.length === 0) return '';
+
+        let zeros = 0;
+        for (let i = 0; i < bytes.length && bytes[i] === 0; i++) {
+            zeros++;
+        }
+
+        const digits = [0];
+        for (let i = zeros; i < bytes.length; i++) {
+            let carry = bytes[i];
+            for (let j = 0; j < digits.length; j++) {
+                carry += digits[j] << 8;
+                digits[j] = carry % 58;
+                carry = Math.floor(carry / 58);
+            }
+            while (carry > 0) {
+                digits.push(carry % 58);
+                carry = Math.floor(carry / 58);
+            }
+        }
+
+        let result = '';
+        for (let i = 0; i < zeros; i++) {
+            result += '1';
+        }
+
+        for (let i = digits.length - 1; i >= 0; i--) {
+            result += BASE58_ALPHABET[digits[i]];
+        }
+
+        return result;
+    }
+
+    // SHA256 hashing
+    function sha256(data) {
+        if (typeof data === 'string') {
+            data = CryptoJS.enc.Utf8.parse(data);
+        } else if (data instanceof Uint8Array) {
+            data = CryptoJS.lib.WordArray.create(data);
+        }
+        return CryptoJS.SHA256(data);
+    }
+
+    // RIPEMD160 hashing
+    function ripemd160(data) {
+        if (typeof data === 'string') {
+            data = CryptoJS.enc.Utf8.parse(data);
+        } else if (data instanceof Uint8Array) {
+            data = CryptoJS.lib.WordArray.create(data);
+        }
+        return CryptoJS.RIPEMD160(data);
+    }
+
+    // Double SHA256
+    function doubleSha256(data) {
+        return sha256(sha256(data));
+    }
+
+    // Proper secp256k1 implementation using elliptic.js
+    function getPublicKey(privateKey) {
+        // Create secp256k1 elliptic curve
+        const EC = elliptic.ec;
+        const ec = new EC('secp256k1');
+
+        // Create key pair from private key
+        const keyPair = ec.keyFromPrivate(bytesToHex(privateKey));
+
+        // Get public key points
+        const pubPoint = keyPair.getPublic();
+
+        // Get compressed public key (33 bytes: 0x02/0x03 + 32 bytes)
+        const compressed = new Uint8Array(33);
+        const compressedHex = pubPoint.encodeCompressed('hex');
+        for (let i = 0; i < 33; i++) {
+            compressed[i] = parseInt(compressedHex.substr(i * 2, 2), 16);
+        }
+
+        // Get uncompressed public key (65 bytes: 0x04 + 32 + 32 bytes)
+        const uncompressed = new Uint8Array(65);
+        const uncompressedHex = pubPoint.encode('hex');
+        for (let i = 0; i < 65; i++) {
+            uncompressed[i] = parseInt(uncompressedHex.substr(i * 2, 2), 16);
+        }
+
+        return { compressed, uncompressed };
+    }
+
+    // Generate Bitcoin address using proper HASH160 = RIPEMD160(SHA256(pubkey))
+    function generateAddress(publicKey) {
+        // Step 1: SHA256 hash of public key
+        const sha = sha256(CryptoJS.lib.WordArray.create(publicKey));
+
+        // Step 2: RIPEMD160 hash of SHA256 result
+        const ripemd = ripemd160(sha);
+
+        // Step 3: Add version byte (0x00 for mainnet P2PKH)
+        const versioned = new Uint8Array(21);
+        versioned[0] = 0x00;
+        const ripemdBytes = hexToBytes(ripemd.toString());
+        versioned.set(ripemdBytes, 1);
+
+        // Step 4: Calculate checksum (double SHA256 of versioned payload)
+        const checksum = doubleSha256(CryptoJS.lib.WordArray.create(versioned));
+        const checksumBytes = hexToBytes(checksum.toString()).slice(0, 4);
+
+        // Step 5: Create final address (21 bytes + 4 bytes checksum)
+        const address = new Uint8Array(25);
+        address.set(versioned, 0);
+        address.set(checksumBytes, 21);
+
+        // Step 6: Encode as Base58
+        return base58Encode(address);
+    }
+
+    // Convert private key to WIF
+    function privateKeyToWIF(privateKey, compressed = false) {
+        const extended = new Uint8Array(compressed ? 34 : 33);
+        extended[0] = 0x80; // mainnet prefix
+        extended.set(privateKey, 1);
+
+        if (compressed) {
+            extended[33] = 0x01; // compression flag
+        }
+
+        const checksum = doubleSha256(CryptoJS.lib.WordArray.create(extended));
+        const checksumBytes = hexToBytes(checksum.toString()).slice(0, 4);
+
+        const wif = new Uint8Array(extended.length + 4);
+
+        wif.set(extended, 0);
+        wif.set(checksumBytes, extended.length);
+
+        return base58Encode(wif);
+    }
+
+    // Simple QR code implementation via API
+    function generateQR(text, containerId) {
+        const container = document.getElementById(containerId);
+        const qrImg = document.createElement('img');
+
+        // Use free API for QR code generation
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(text)}&bgcolor=ffffff&color=000000&margin=10`;
+        qrImg.alt = 'QR Code';
+        qrImg.className = 'qr-code';
+        qrImg.style.maxWidth = '150px';
+        qrImg.style.height = 'auto';
+
+        // Fallback: if image doesn't load, show text version
+        qrImg.onerror = function() {
+            container.innerHTML = `
+                    <div style="
+                        width: 150px;
+                        height: 150px;
+                        border: 2px dashed #ccc;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        text-align: center;
+                        font-size: 12px;
+                        color: #666;
+                        background: #f9f9f9;
+                        border-radius: 8px;
+                    ">
+                        QR code<br>unavailable<br><small>(data preserved)</small>
+                    </div>
+                `;
+        };
+
+        container.innerHTML = '';
+        container.appendChild(qrImg);
+    }
+
+    // Main wallet generation function
+    function generateWallet() {
+        // Generate private key
+        const privateKey = generateSecureRandom(32);
+        const privateKeyHex = bytesToHex(privateKey);
+
+        // Get public keys using proper secp256k1
+        const publicKeys = getPublicKey(privateKey);
+
+        // Generate WIF keys
+        const wifUncompressed = privateKeyToWIF(privateKey, false);
+        const wifCompressed = privateKeyToWIF(privateKey, true);
+
+        // Generate addresses from both compressed and uncompressed public keys
+        const addressFromUncompressed = generateAddress(publicKeys.uncompressed);
+        const addressFromCompressed = generateAddress(publicKeys.compressed);
+
+        // HTML for display
+        const walletHTML = `
+                <div class="wallet-card">
+                    <div class="wallet-title">🔑 Private Key (Uncompressed WIF)</div>
+
+                    <div class="key-section">
+                        <div class="key-label">Private Key (HEX):</div>
+                        <div class="key-value">${privateKeyHex}</div>
+                        <div class="qr-container">
+                            <div id="qr-private-hex"></div>
+                        </div>
+                    </div>
+
+                    <div class="key-section">
+                        <div class="key-label">WIF Uncompressed:</div>
+                        <div class="key-value">${wifUncompressed}</div>
+                        <div class="qr-container">
+                            <div id="qr-wif-uncompressed"></div>
+                        </div>
+                    </div>
+
+                    <div class="key-section">
+                        <div class="key-label">Public Key (Uncompressed, 65 bytes):</div>
+                        <div class="key-value">${bytesToHex(publicKeys.uncompressed)}</div>
+                    </div>
+
+                    <div class="key-section">
+                        <div class="key-label">Bitcoin Address (Legacy P2PKH):</div>
+                        <div class="key-value">${addressFromUncompressed}</div>
+                        <div class="qr-container">
+
+                            <div id="qr-address-uncompressed"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="wallet-card">
+                    <div class="wallet-title">🗜 Private Key (Compressed WIF)</div>
+
+                    <div class="key-section">
+                        <div class="key-label">Private Key (HEX):</div>
+                        <div class="key-value">${privateKeyHex}</div>
+                        <div class="qr-container">
+                            <div id="qr-private-hex-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="key-section">
+                        <div class="key-label">WIF Compressed:</div>
+                        <div class="key-value">${wifCompressed}</div>
+                        <div class="qr-container">
+                            <div id="qr-wif-compressed"></div>
+                        </div>
+                    </div>
+
+                    <div class="key-section">
+                        <div class="key-label">Public Key (Compressed, 33 bytes):</div>
+                        <div class="key-value">${bytesToHex(publicKeys.compressed)}</div>
+                    </div>
+
+                    <div class="key-section">
+                        <div class="key-label">Bitcoin Address (Legacy P2PKH):</div>
+                        <div class="key-value">${addressFromCompressed}</div>
+                        <div class="qr-container">
+                            <div id="qr-address-compressed"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+        document.getElementById('walletContainer').innerHTML = walletHTML;
+
+        // Generate QR codes
+        setTimeout(() => {
+            generateQR(privateKeyHex, 'qr-private-hex');
+            generateQR(privateKeyHex, 'qr-private-hex-2');
+            generateQR(wifUncompressed, 'qr-wif-uncompressed');
+            generateQR(wifCompressed, 'qr-wif-compressed');
+            generateQR(addressFromUncompressed, 'qr-address-uncompressed');
+            generateQR(addressFromCompressed, 'qr-address-compressed');
+        }, 100);
+    }
+
+    // Generate wallet on page load
+    window.addEventListener('load', generateWallet);
+</script>
+</body>
+</html>

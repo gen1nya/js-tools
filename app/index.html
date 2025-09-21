@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инструменты</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+
+        .language-switch {
+            margin-bottom: 20px;
+        }
+
+        .lang-btn {
+            background: none;
+            border: 1px solid #bdc3c7;
+            padding: 5px 15px;
+            margin: 0 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .lang-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .lang-btn:hover:not(.active) {
+            background: #ecf0f1;
+        }
+
+        .description {
+            font-size: 1em;
+            color: #555;
+            margin-bottom: 40px;
+            text-align: left;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .tool-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fafafa;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .tool-card:hover {
+            border-color: #3498db;
+            background: white;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .tool-icon {
+            font-size: 2em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .tool-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .tool-desc {
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 0.8em;
+            color: #888;
+            text-align: center;
+        }
+
+        /* Мобильная адаптация */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .title {
+                font-size: 1.8em;
+            }
+
+            .subtitle {
+                font-size: 1em;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .tool-card {
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            .title {
+                font-size: 1.5em;
+            }
+
+            .lang-btn {
+                padding: 8px 12px;
+                margin: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1 class="title" data-text="title">Веб до того, как он стал ебаным</h1>
+        <p class="subtitle" data-text="subtitle">Простые инструменты без всякой хуйни</p>
+
+        <div class="language-switch">
+            <button class="lang-btn active" onclick="switchLanguage('ru')">🇷🇺 Русский</button>
+            <button class="lang-btn" onclick="switchLanguage('en')">🇺🇸 English</button>
+        </div>
+    </div>
+
+    <div class="description" data-text="description">
+        <p>Эта страница не использует куки, не собирает аналитику и не показывает рекламу. Она вообще не знает, кто вы и откуда пришли.</p>
+        <p>Здесь просто набор инструментов, которые конкретно мне сделали жизнь проще, но возможно подойдут и вам.</p>
+    </div>
+
+    <div class="tools-grid" id="tools-grid">
+        <!-- Инструменты будут добавлены через JavaScript -->
+    </div>
+
+    <div class="footer" data-text="footer">
+        Сделано на коленке, работает без интернета после загрузки. Исходники доступны по запросу.
+    </div>
+</div>
+
+<script>
+    // Переводы
+    const translations = {
+        ru: {
+            title: "Веб до того, как он стал ебаным",
+            subtitle: "Простые инструменты без всякой хуйни",
+            description: `
+                    <p>Эта страница не использует куки, не собирает аналитику и не показывает рекламу. Она вообще не знает, кто вы и откуда пришли.</p>
+                    <p>Здесь просто набор инструментов, которые конкретно мне сделали жизнь проще, но возможно подойдут и вам.</p>
+                `,
+            footer: "Сделано на коленке, силами клоды и чатжпт. Исходники скоро.",
+            tools: [
+                {
+                    name: "peko",
+                    icon: "🐰",
+                    title: "Пеко",
+                    desc: "Пеко пеко пеко пеко пеко пеко пеко пеко пеко"
+                },
+                {
+                    name: "json_validator",
+                    icon: "🗄️",
+                    title: "Json-бьютификатор",
+                    desc: "Форматирует/валидирует JSON"
+                },
+                {
+                    name: "image-converter",
+                    icon: "🖼️",
+                    title: "Конвертер изображений",
+                    desc: "Конвертирует изображения в разные форматы и размеры"
+                },
+                {
+                    name: "btc_generator",
+                    icon: "💰",
+                    title: "Генератор BTC кошельков",
+                    desc: "Создаёт BTC адреса и ключи. Работает оффлайн. Обновляется при перезагрузке страницы"
+                },
+                {
+                    name: "colors",
+                    icon: "🎨",
+                    title: "Цвета",
+                    desc: "Палитры, коды, всё для работы с цветом"
+                },
+                {
+                    name: "twitch_iframe",
+                    icon: "📺",
+                    title: "Айфрейм твича",
+                    desc: "Фиолетовый шакал скачать обои"
+                },
+                {
+                    name: "qr_generator_reader",
+                    icon: "📱",
+                    title: "QR коды",
+                    desc: "Генерит и читает QR коды"
+                },
+                {
+                    name: "audio_converter",
+                    icon: "🎵",
+                    title: "Аудио конвертер",
+                    desc: "Конвертирует аудио файлы в разные форматы и битрейты"
+                },
+                {
+                    name: "hex-dec-converter",
+                    icon: "🔢",
+                    title: "Hex-Dec конвертер",
+                    desc: "Конвертирует числа между шестнадцатеричным и десятичным форматами"
+                },
+                {
+                    name: "base-utf-converter",
+                    icon: "🔤",
+                    title: "Base64/58 конвертер",
+                    desc: "Конвертирует в Base64/58 и обратно"
+                }
+            ]
+        },
+        en: {
+            title: "Web before it became fucked up",
+            subtitle: "Simple tools without any bullshit",
+            description: `
+                    <p>This page doesn't use cookies, doesn't collect analytics, and doesn't show ads. It doesn't know who you are or where you came from.</p>
+                    <p>Here's just a set of tools that made my life easier, but might work for you too.</p>
+                    <p>Not everything translated to English yet, but I'm working on it, and PRs are welcome.</p>
+                `,
+            footer: "Made on my knee with the help of Claude and ChatGPT. Source code available will be published soon.",
+            tools: [
+                {
+                    name: "peko",
+                    icon: "🐰",
+                    title: "Peko",
+                    desc: "peko peko peko peko peko peko peko peko peko peko peko peko peko peko peko peko"
+                },
+                {
+                    name: "json_validator",
+                    icon: "🗄️",
+                    title: "Json-Beautifier",
+                    desc: "Formats/validates JSON"
+                },
+                {
+                    name: "image-converter",
+                    icon: "🖼️",
+                    title: "Image Converter",
+                    desc: "Converts images to different formats and sizes"
+                },
+                {
+                    name: "btc_generator",
+                    icon: "💰",
+                    title: "BTC Wallet Generator",
+                    desc: "Creates BTC addresses and keys. Works offline. Updates on page reload"
+                },
+                {
+                    name: "colors",
+                    icon: "🎨",
+                    title: "Colors",
+                    desc: "Palettes, codes, everything for working with color"
+                },
+                {
+                    name: "twitch_iframe",
+                    icon: "📺",
+                    title: "Twitch Iframe",
+                    desc: "Purple jackal download wallpapers"
+                },
+                {
+                    name: "qr_generator_reader",
+                    icon: "📱",
+                    title: "QR Codes",
+                    desc: "Generates and reads QR codes"
+                },
+                {
+                    name: "audio_converter",
+                    icon: "🎵",
+                    title: "Audio Converter",
+                    desc: "Converts audio files to different formats and bitrates"
+                },
+                {
+                    name: "hex-dec-converter",
+                    icon: "🔢",
+                    title: "Hex-Dec Converter",
+                    desc: "Converts numbers between hexadecimal and decimal formats"
+                },
+                {
+                    name: "base-utf-converter",
+                    icon: "🔤",
+                    title: "Base64/58 Converter",
+                    desc: "Converts to Base64/58 and back"
+                }
+            ]
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function switchLanguage(lang) {
+        currentLang = lang;
+
+        // Обновляем кнопки языка
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // Обновляем тексты
+        const texts = translations[lang];
+        document.querySelectorAll('[data-text]').forEach(el => {
+            const key = el.getAttribute('data-text');
+            if (texts[key]) {
+                el.innerHTML = texts[key];
+            }
+        });
+
+        // Обновляем инструменты
+        renderTools(texts.tools);
+
+        // Обновляем язык документа
+        document.documentElement.lang = lang;
+    }
+
+    function renderTools(tools) {
+        const grid = document.getElementById('tools-grid');
+        grid.innerHTML = tools.map(tool => `
+                <a href="tools/${tool.name}.html" class="tool-card">
+                    <span class="tool-icon">${tool.icon}</span>
+                    <div class="tool-title">${tool.title}</div>
+                    <div class="tool-desc">${tool.desc}</div>
+                </a>
+            `).join('');
+    }
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', function() {
+        renderTools(translations[currentLang].tools);
+    });
+</script>
+</body>
+</html>

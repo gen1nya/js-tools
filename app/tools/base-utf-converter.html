@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конвертер Base64/Base58</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .converter-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .format-badge {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        textarea {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            min-height: 80px;
+            resize: vertical;
+            word-break: break-all;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .utf8-textarea {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            font-size: 1.1em;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 20px auto;
+            display: block;
+        }
+
+        .clear-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(238, 90, 36, 0.4);
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #c0392b;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 5px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .success-message {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid #2ecc71;
+            color: #27ae60;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 5px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .alphabet-info {
+            background: rgba(52, 152, 219, 0.1);
+            border: 1px solid #3498db;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        .alphabet-chars {
+            font-family: 'Courier New', monospace;
+            background: rgba(52, 152, 219, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔄 Конвертер Base64/Base58</h1>
+
+    <div class="converter-grid">
+        <div class="input-group">
+            <label for="base64Input">
+                Base64:
+                <span class="format-badge">A-Z, a-z, 0-9, +, /, =</span>
+            </label>
+            <textarea id="base64Input" placeholder="Например: SGVsbG8gV29ybGQ="></textarea>
+            <div class="error-message" id="base64Error"></div>
+            <div class="success-message" id="base64Success"></div>
+        </div>
+
+        <div class="input-group">
+            <label for="base58Input">
+                Base58:
+                <span class="format-badge">Bitcoin/IPFS алфавит</span>
+            </label>
+            <textarea id="base58Input" placeholder="Например: JxF12TrwUP45BMd"></textarea>
+            <div class="error-message" id="base58Error"></div>
+            <div class="success-message" id="base58Success"></div>
+        </div>
+
+        <div class="input-group">
+            <label for="hexInput">
+                Hex:
+                <span class="format-badge">0-9, A-F</span>
+            </label>
+            <textarea id="hexInput" placeholder="Например: 48656C6C6F20576F726C64"></textarea>
+            <div class="error-message" id="hexError"></div>
+            <div class="success-message" id="hexSuccess"></div>
+        </div>
+
+        <div class="input-group">
+            <label for="utf8Input">
+                UTF-8 текст:
+                <span class="format-badge">Любые символы</span>
+            </label>
+            <textarea id="utf8Input" class="utf8-textarea" placeholder="Например: Hello World или Привет мир!"></textarea>
+            <div class="error-message" id="utf8Error"></div>
+            <div class="success-message" id="utf8Success"></div>
+        </div>
+    </div>
+
+    <button class="clear-btn" onclick="clearAll()">🗑️ Очистить всё</button>
+
+    <div class="info-panel">
+        <h3>📊 Информация о данных</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Байт в исходных данных</div>
+                <div class="info-value" id="byteCount">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Символов UTF-8</div>
+                <div class="info-value" id="charCount">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Размер Base64</div>
+                <div class="info-value" id="base64Size">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Размер Base58</div>
+                <div class="info-value" id="base58Size">-</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alphabet-info">
+        <h4>📝 Информация об алфавитах</h4>
+        <p><strong>Base64:</strong> Стандартный алфавит RFC 4648. Использует символы A-Z, a-z, 0-9, +, / и = для padding.</p>
+        <div class="alphabet-chars">A B C D E F G H I J K L M N O P Q R S T U V W X Y Z<br>a b c d e f g h i j k l m n o p q r s t u v w x y z<br>0 1 2 3 4 5 6 7 8 9 + /</div>
+
+        <p style="margin-top: 15px;"><strong>Base58:</strong> Bitcoin/IPFS алфавит. Исключает похожие символы 0, O, I, l для удобства чтения.</p>
+        <div class="alphabet-chars">1 2 3 4 5 6 7 8 9 A B C D E F G H J K L M N P Q R S T U V W X Y Z<br>a b c d e f g h i j k m n o p q r s t u v w x y z</div>
+    </div>
+</div>
+
+<script>
+    let isUpdating = false;
+
+    const base64Input = document.getElementById('base64Input');
+    const base58Input = document.getElementById('base58Input');
+    const hexInput = document.getElementById('hexInput');
+    const utf8Input = document.getElementById('utf8Input');
+
+    // Base58 alphabet (Bitcoin/IPFS)
+    const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+    // Event listeners
+    base64Input.addEventListener('input', () => convertFrom('base64'));
+    base58Input.addEventListener('input', () => convertFrom('base58'));
+    hexInput.addEventListener('input', () => convertFrom('hex'));
+    utf8Input.addEventListener('input', () => convertFrom('utf8'));
+
+    function convertFrom(source) {
+        if (isUpdating) return;
+        isUpdating = true;
+
+        clearMessages();
+
+        try {
+            let bytes = null;
+
+            if (source === 'base64' && base64Input.value.trim()) {
+                bytes = base64ToBytes(base64Input.value.trim());
+            } else if (source === 'base58' && base58Input.value.trim()) {
+                bytes = base58ToBytes(base58Input.value.trim());
+            } else if (source === 'hex' && hexInput.value.trim()) {
+                bytes = hexToBytes(hexInput.value.trim());
+            } else if (source === 'utf8' && utf8Input.value.trim()) {
+                bytes = utf8ToBytes(utf8Input.value);
+            }
+
+            if (bytes !== null) {
+                updateAllFields(bytes, source);
+                updateInfo(bytes);
+                showSuccess(source);
+            } else {
+                clearInfo();
+            }
+        } catch (error) {
+            showError(source, error.message);
+            clearInfo();
+        }
+
+        isUpdating = false;
+    }
+
+    function base64ToBytes(base64) {
+        try {
+            // Remove whitespace and validate
+            base64 = base64.replace(/\s/g, '');
+            if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) {
+                throw new Error('Некорректные символы в Base64');
+            }
+
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes;
+        } catch (e) {
+            throw new Error('Ошибка декодирования Base64: ' + e.message);
+        }
+    }
+
+    function base58ToBytes(base58) {
+        try {
+            // Validate alphabet
+            for (let char of base58) {
+                if (BASE58_ALPHABET.indexOf(char) === -1) {
+                    throw new Error(`Некорректный символ в Base58: '${char}'`);
+                }
+            }
+
+            // Count leading 1s
+            let leadingOnes = 0;
+            for (let char of base58) {
+                if (char === '1') leadingOnes++;
+                else break;
+            }
+
+            // Convert to big integer
+            let num = 0n;
+            for (let char of base58) {
+                num = num * 58n + BigInt(BASE58_ALPHABET.indexOf(char));
+            }
+
+            // Convert to bytes
+            const bytes = [];
+            while (num > 0n) {
+                bytes.unshift(Number(num % 256n));
+                num = num / 256n;
+            }
+
+            // Add leading zeros for leading 1s
+            while (leadingOnes-- > 0) {
+                bytes.unshift(0);
+            }
+
+            return new Uint8Array(bytes);
+        } catch (e) {
+            throw new Error('Ошибка декодирования Base58: ' + e.message);
+        }
+    }
+
+    function hexToBytes(hex) {
+        try {
+            hex = hex.replace(/\s/g, '').replace(/^0x/i, '');
+            if (!/^[0-9a-f]*$/i.test(hex)) {
+                throw new Error('Некорректные символы в Hex');
+            }
+
+            if (hex.length % 2 !== 0) {
+                hex = '0' + hex;
+            }
+
+            const bytes = new Uint8Array(hex.length / 2);
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+            }
+            return bytes;
+        } catch (e) {
+            throw new Error('Ошибка декодирования Hex: ' + e.message);
+        }
+    }
+
+    function utf8ToBytes(text) {
+        try {
+            return new TextEncoder().encode(text);
+        } catch (e) {
+            throw new Error('Ошибка кодирования UTF-8: ' + e.message);
+        }
+    }
+
+    function bytesToBase64(bytes) {
+        let binaryString = '';
+        for (let byte of bytes) {
+            binaryString += String.fromCharCode(byte);
+        }
+        return btoa(binaryString);
+    }
+
+    function bytesToBase58(bytes) {
+        if (bytes.length === 0) return '';
+
+        // Count leading zeros
+        let leadingZeros = 0;
+        for (let byte of bytes) {
+            if (byte === 0) leadingZeros++;
+            else break;
+        }
+
+        // Convert to big integer
+        let num = 0n;
+        for (let byte of bytes) {
+            num = num * 256n + BigInt(byte);
+        }
+
+        // Convert to base58
+        let result = '';
+        while (num > 0n) {
+            result = BASE58_ALPHABET[Number(num % 58n)] + result;
+            num = num / 58n;
+        }
+
+        // Add leading 1s for leading zeros
+        result = '1'.repeat(leadingZeros) + result;
+
+        return result || '1';
+    }
+
+    function bytesToHex(bytes) {
+        return Array.from(bytes)
+            .map(byte => byte.toString(16).padStart(2, '0'))
+            .join('')
+            .toUpperCase();
+    }
+
+    function bytesToUtf8(bytes) {
+        try {
+            return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch (e) {
+            throw new Error('Данные не являются валидной UTF-8 строкой');
+        }
+    }
+
+    function updateAllFields(bytes, source) {
+        try {
+            if (source !== 'base64') {
+                base64Input.value = bytesToBase64(bytes);
+            }
+        } catch (e) {
+            showError('base64', 'Не удалось конвертировать в Base64');
+        }
+
+        try {
+            if (source !== 'base58') {
+                base58Input.value = bytesToBase58(bytes);
+            }
+        } catch (e) {
+            showError('base58', 'Не удалось конвертировать в Base58');
+        }
+
+        try {
+            if (source !== 'hex') {
+                hexInput.value = bytesToHex(bytes);
+            }
+        } catch (e) {
+            showError('hex', 'Не удалось конвертировать в Hex');
+        }
+
+        try {
+            if (source !== 'utf8') {
+                utf8Input.value = bytesToUtf8(bytes);
+            }
+        } catch (e) {
+            if (source !== 'utf8') {
+                utf8Input.value = '';
+                showError('utf8', e.message);
+            }
+        }
+    }
+
+    function updateInfo(bytes) {
+        document.getElementById('byteCount').textContent = bytes.length;
+
+        try {
+            const utf8Text = bytesToUtf8(bytes);
+            document.getElementById('charCount').textContent = utf8Text.length;
+        } catch (e) {
+            document.getElementById('charCount').textContent = 'N/A';
+        }
+
+        document.getElementById('base64Size').textContent = bytesToBase64(bytes).length;
+        document.getElementById('base58Size').textContent = bytesToBase58(bytes).length;
+    }
+
+    function clearInfo() {
+        document.getElementById('byteCount').textContent = '-';
+        document.getElementById('charCount').textContent = '-';
+        document.getElementById('base64Size').textContent = '-';
+        document.getElementById('base58Size').textContent = '-';
+    }
+
+    function showError(format, message) {
+        const errorElement = document.getElementById(format + 'Error');
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+
+    function showSuccess(format) {
+        const successElement = document.getElementById(format + 'Success');
+        successElement.textContent = 'Успешно конвертировано';
+        successElement.style.display = 'block';
+
+        // Hide after 2 seconds
+        setTimeout(() => {
+            successElement.style.display = 'none';
+        }, 2000);
+    }
+
+    function clearMessages() {
+        const errorElements = document.querySelectorAll('.error-message');
+        const successElements = document.querySelectorAll('.success-message');
+
+        errorElements.forEach(el => el.style.display = 'none');
+        successElements.forEach(el => el.style.display = 'none');
+    }
+
+    function clearAll() {
+        base64Input.value = '';
+        base58Input.value = '';
+        hexInput.value = '';
+        utf8Input.value = '';
+        clearMessages();
+        clearInfo();
+    }
+</script>
+</body>
+</html>

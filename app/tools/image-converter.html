@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конвертер изображений</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #4facfe;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #00f2fe;
+            background: rgba(79, 172, 254, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #4facfe;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(79, 172, 254, 0.05);
+            border-radius: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .control-group select,
+        .control-group input {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .size-inputs {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .image-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .image-info {
+            text-align: center;
+        }
+
+        .image-name {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .image-details {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .images-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖼️ Конвертер изображений</h1>
+            <p>Конвертируйте, изменяйте размер и обрабатывайте изображения прямо в браузере</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <h3>Перетащите изображения сюда или кликните для выбора</h3>
+                <p>Поддерживаются форматы: PNG, JPEG, WebP, GIF</p>
+                <input type="file" id="fileInput" multiple accept="image/*">
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="outputFormat">Формат вывода:</label>
+                    <select id="outputFormat">
+                        <option value="png">PNG</option>
+                        <option value="jpeg">JPEG</option>
+                        <option value="webp">WebP</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="quality">Качество (JPEG/WebP):</label>
+                    <input type="range" id="quality" min="0.1" max="1" step="0.1" value="0.9">
+                    <span id="qualityValue">90%</span>
+                </div>
+
+                <div class="control-group">
+                    <label for="resizeMode">Режим изменения размера:</label>
+                    <select id="resizeMode">
+                        <option value="proportional">Пропорциональный (без деформации)</option>
+                        <option value="crop">Обрезка (заполнить всю область)</option>
+                        <option value="stretch">Растяжение (может деформировать)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="aspectRatio">Соотношение сторон:</label>
+                    <select id="aspectRatio">
+                        <option value="original">Оригинальное</option>
+                        <optgroup label="Горизонтальные (ландшафт)">
+                            <option value="16:9">16:9 (широкоэкранное)</option>
+                            <option value="21:9">21:9 (ультраширокое)</option>
+                            <option value="4:3">4:3 (классическое)</option>
+                            <option value="3:2">3:2 (фотографическое)</option>
+                            <option value="5:4">5:4 (мониторы)</option>
+                        </optgroup>
+                        <optgroup label="Квадратные">
+                            <option value="1:1">1:1 (квадрат)</option>
+                        </optgroup>
+                        <optgroup label="Вертикальные (портрет)">
+                            <option value="9:16">9:16 (мобильное видео)</option>
+                            <option value="3:4">3:4 (Instagram портрет)</option>
+                            <option value="2:3">2:3 (классический портрет)</option>
+                            <option value="4:5">4:5 (Instagram фото)</option>
+                            <option value="9:21">9:21 (вертикальные истории)</option>
+                        </optgroup>
+                        <option value="custom">Пользовательское</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Размер:</label>
+                    <div class="size-inputs">
+                        <input type="number" id="width" placeholder="Ширина" min="1">
+                        <span>×</span>
+                        <input type="number" id="height" placeholder="Высота" min="1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="processBtn" disabled>🔄 Обработать все</button>
+                <button class="btn btn-secondary" id="downloadAllBtn" disabled>📦 Скачать ZIP</button>
+                <button class="btn btn-secondary" id="clearBtn">🗑️ Очистить</button>
+            </div>
+
+            <div class="progress-bar hidden" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div class="status hidden" id="status"></div>
+
+            <div class="images-grid" id="imagesGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        class ImageConverter {
+            constructor() {
+                this.images = [];
+                this.processedImages = [];
+                this.initEventListeners();
+                this.updateQualityDisplay();
+                this.updateFieldStates();
+            }
+
+            initEventListeners() {
+                const uploadArea = document.getElementById('uploadArea');
+                const fileInput = document.getElementById('fileInput');
+                const qualitySlider = document.getElementById('quality');
+                const aspectRatio = document.getElementById('aspectRatio');
+                const width = document.getElementById('width');
+                const height = document.getElementById('height');
+
+                // Загрузка файлов
+                uploadArea.addEventListener('click', () => fileInput.click());
+                uploadArea.addEventListener('dragover', this.handleDragOver.bind(this));
+                uploadArea.addEventListener('drop', this.handleDrop.bind(this));
+                fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+
+                // Контролы
+                qualitySlider.addEventListener('input', this.updateQualityDisplay.bind(this));
+                aspectRatio.addEventListener('change', this.handleAspectRatioChange.bind(this));
+                document.getElementById('resizeMode').addEventListener('change', this.updateFieldStates.bind(this));
+                width.addEventListener('input', this.handleSizeChange.bind(this));
+                height.addEventListener('input', this.handleSizeChange.bind(this));
+
+                // Кнопки
+                document.getElementById('processBtn').addEventListener('click', this.processAllImages.bind(this));
+                document.getElementById('downloadAllBtn').addEventListener('click', this.downloadAllAsZip.bind(this));
+                document.getElementById('clearBtn').addEventListener('click', this.clearAll.bind(this));
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                e.currentTarget.classList.add('dragover');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+                this.addImages(files);
+            }
+
+            handleFileSelect(e) {
+                const files = Array.from(e.target.files);
+                this.addImages(files);
+            }
+
+            addImages(files) {
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const imageData = {
+                                id: Date.now() + Math.random(),
+                                file: file,
+                                originalImage: img,
+                                name: file.name,
+                                size: file.size,
+                                width: img.width,
+                                height: img.height,
+                                src: e.target.result
+                            };
+                            this.images.push(imageData);
+                            this.renderImageCard(imageData);
+                            this.updateButtons();
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            renderImageCard(imageData) {
+                const grid = document.getElementById('imagesGrid');
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                card.innerHTML = `
+                    <img src="${imageData.src}" alt="${imageData.name}" class="image-preview">
+                    <div class="image-info">
+                        <div class="image-name">${imageData.name}</div>
+                        <div class="image-details">
+                            ${imageData.width}×${imageData.height} • ${this.formatFileSize(imageData.size)}
+                        </div>
+                        <button class="btn btn-secondary" onclick="converter.downloadSingle('${imageData.id}')">
+                            💾 Скачать
+                        </button>
+                        <button class="btn btn-secondary" onclick="converter.removeImage('${imageData.id}')" style="margin-left: 10px;">
+                            🗑️ Удалить
+                        </button>
+                    </div>
+                `;
+                card.dataset.id = imageData.id;
+                grid.appendChild(card);
+            }
+
+            removeImage(id) {
+                this.images = this.images.filter(img => img.id != id);
+                this.processedImages = this.processedImages.filter(img => img.id != id);
+                const card = document.querySelector(`[data-id="${id}"]`);
+                if (card) card.remove();
+                this.updateButtons();
+            }
+
+            updateButtons() {
+                const processBtn = document.getElementById('processBtn');
+                const downloadBtn = document.getElementById('downloadAllBtn');
+                
+                processBtn.disabled = this.images.length === 0;
+                downloadBtn.disabled = this.processedImages.length === 0;
+            }
+
+            updateQualityDisplay() {
+                const quality = document.getElementById('quality').value;
+                document.getElementById('qualityValue').textContent = Math.round(quality * 100) + '%';
+            }
+
+            handleAspectRatioChange() {
+                const ratio = document.getElementById('aspectRatio').value;
+                const width = document.getElementById('width');
+                const height = document.getElementById('height');
+
+                if (ratio === 'custom') {
+                    width.disabled = false;
+                    height.disabled = false;
+                } else if (ratio !== 'original') {
+                    const [w, h] = ratio.split(':').map(Number);
+                    const baseSize = 1000;
+                    width.value = Math.round(baseSize * w / Math.max(w, h));
+                    height.value = Math.round(baseSize * h / Math.max(w, h));
+                    width.disabled = false;
+                    height.disabled = false;
+                }
+                this.updateFieldStates();
+            }
+
+            handleSizeChange() {
+                const resizeMode = document.getElementById('resizeMode').value;
+                const aspectRatio = document.getElementById('aspectRatio').value;
+                const width = document.getElementById('width');
+                const height = document.getElementById('height');
+                const activeElement = document.activeElement;
+
+                // Для пропорционального режима
+                if (resizeMode === 'proportional') {
+                    if (aspectRatio === 'original' && this.images.length > 0) {
+                        // Сохраняем пропорции исходного изображения
+                        const img = this.images[0];
+                        const originalAspectRatio = img.width / img.height;
+                        
+                        if (activeElement === width && width.value) {
+                            height.value = Math.round(width.value / originalAspectRatio);
+                        } else if (activeElement === height && height.value) {
+                            width.value = Math.round(height.value * originalAspectRatio);
+                        }
+                    } else if (aspectRatio !== 'original' && aspectRatio !== 'custom') {
+                        // Сохраняем выбранное соотношение сторон
+                        const [ratioW, ratioH] = aspectRatio.split(':').map(Number);
+                        const targetRatio = ratioW / ratioH;
+                        
+                        if (activeElement === width && width.value) {
+                            height.value = Math.round(width.value / targetRatio);
+                        } else if (activeElement === height && height.value) {
+                            width.value = Math.round(height.value * targetRatio);
+                        }
+                    }
+                }
+            }
+
+            updateFieldStates() {
+                const resizeMode = document.getElementById('resizeMode').value;
+                const aspectRatio = document.getElementById('aspectRatio').value;
+                const width = document.getElementById('width');
+                const height = document.getElementById('height');
+
+                // Управление доступностью полей в зависимости от режима
+                if (resizeMode === 'proportional' && aspectRatio === 'original') {
+                    // В пропорциональном режиме с оригинальным соотношением
+                    // можно менять только один размер
+                    width.disabled = false;
+                    height.disabled = false;
+                } else if (aspectRatio !== 'custom' && aspectRatio !== 'original') {
+                    // При фиксированном соотношении сторон поля связаны
+                    width.disabled = false;
+                    height.disabled = false;
+                } else {
+                    width.disabled = false;
+                    height.disabled = false;
+                }
+            }
+
+            async processAllImages() {
+                const progressBar = document.getElementById('progressBar');
+                const progressFill = document.getElementById('progressFill');
+                const status = document.getElementById('status');
+
+                progressBar.classList.remove('hidden');
+                status.classList.remove('hidden');
+                status.textContent = 'Обработка изображений...';
+
+                this.processedImages = [];
+
+                for (let i = 0; i < this.images.length; i++) {
+                    const progress = ((i + 1) / this.images.length) * 100;
+                    progressFill.style.width = progress + '%';
+                    status.textContent = `Обработка ${i + 1} из ${this.images.length}...`;
+
+                    const processedImage = await this.processImage(this.images[i]);
+                    this.processedImages.push(processedImage);
+
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                progressBar.classList.add('hidden');
+                status.textContent = `Обработано ${this.processedImages.length} изображений`;
+                this.updateButtons();
+            }
+
+            async processImage(imageData) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const settings = this.getProcessingSettings();
+                const dimensions = this.calculateDimensions(imageData, settings);
+                
+                canvas.width = dimensions.width;
+                canvas.height = dimensions.height;
+
+                // Очистка canvas
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Рисование изображения в зависимости от режима
+                if (settings.resizeMode === 'crop') {
+                    this.drawImageCrop(ctx, imageData.originalImage, dimensions, imageData);
+                } else if (settings.resizeMode === 'proportional') {
+                    this.drawImageProportional(ctx, imageData.originalImage, dimensions, imageData);
+                } else { // stretch
+                    ctx.drawImage(imageData.originalImage, 0, 0, canvas.width, canvas.height);
+                }
+
+                // Конвертация в нужный формат
+                const mimeType = this.getMimeType(settings.format);
+                const quality = settings.format === 'png' ? undefined : settings.quality;
+                const dataURL = canvas.toDataURL(mimeType, quality);
+
+                return {
+                    ...imageData,
+                    processedDataURL: dataURL,
+                    processedWidth: canvas.width,
+                    processedHeight: canvas.height,
+                    processedFormat: settings.format
+                };
+            }
+
+            drawImageProportional(ctx, img, dimensions, imageData) {
+                // Вписываем изображение пропорционально в заданные размеры
+                const canvasRatio = dimensions.width / dimensions.height;
+                const imageRatio = img.width / img.height;
+                
+                let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                
+                if (imageRatio > canvasRatio) {
+                    // Изображение шире - ограничиваем по ширине
+                    drawWidth = dimensions.width;
+                    drawHeight = dimensions.width / imageRatio;
+                    offsetY = (dimensions.height - drawHeight) / 2;
+                } else {
+                    // Изображение выше - ограничиваем по высоте
+                    drawHeight = dimensions.height;
+                    drawWidth = dimensions.height * imageRatio;
+                    offsetX = (dimensions.width - drawWidth) / 2;
+                }
+                
+                ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+            }
+
+            drawImageCrop(ctx, img, dimensions, imageData) {
+                // Обрезаем изображение под точные размеры
+                const sourceAspectRatio = img.width / img.height;
+                const targetAspectRatio = dimensions.width / dimensions.height;
+
+                let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
+
+                if (sourceAspectRatio > targetAspectRatio) {
+                    // Изображение шире целевого, обрезаем по ширине
+                    sourceWidth = img.height * targetAspectRatio;
+                    sourceX = (img.width - sourceWidth) / 2;
+                } else {
+                    // Изображение выше целевого, обрезаем по высоте
+                    sourceHeight = img.width / targetAspectRatio;
+                    sourceY = (img.height - sourceHeight) / 2;
+                }
+
+                ctx.drawImage(
+                    img,
+                    sourceX, sourceY, sourceWidth, sourceHeight,
+                    0, 0, dimensions.width, dimensions.height
+                );
+            }
+
+            getProcessingSettings() {
+                return {
+                    format: document.getElementById('outputFormat').value,
+                    quality: parseFloat(document.getElementById('quality').value),
+                    resizeMode: document.getElementById('resizeMode').value,
+                    aspectRatio: document.getElementById('aspectRatio').value,
+                    width: parseInt(document.getElementById('width').value) || null,
+                    height: parseInt(document.getElementById('height').value) || null
+                };
+            }
+
+            calculateDimensions(imageData, settings) {
+                let targetWidth = imageData.width;
+                let targetHeight = imageData.height;
+
+                // Сначала определяем целевые размеры на основе пользовательского ввода
+                if (settings.width || settings.height) {
+                    if (settings.width && settings.height) {
+                        targetWidth = settings.width;
+                        targetHeight = settings.height;
+                    } else if (settings.width) {
+                        targetWidth = settings.width;
+                        if (settings.resizeMode === 'proportional') {
+                            targetHeight = Math.round(targetWidth * imageData.height / imageData.width);
+                        } else {
+                            targetHeight = imageData.height;
+                        }
+                    } else if (settings.height) {
+                        targetHeight = settings.height;
+                        if (settings.resizeMode === 'proportional') {
+                            targetWidth = Math.round(targetHeight * imageData.width / imageData.height);
+                        } else {
+                            targetWidth = imageData.width;
+                        }
+                    }
+                } else if (settings.aspectRatio !== 'original' && settings.aspectRatio !== 'custom') {
+                    // Применяем предустановленное соотношение сторон
+                    const [ratioW, ratioH] = settings.aspectRatio.split(':').map(Number);
+                    const targetRatio = ratioW / ratioH;
+                    const currentRatio = imageData.width / imageData.height;
+
+                    if (settings.resizeMode === 'proportional') {
+                        // Вписываем изображение в заданное соотношение без обрезки
+                        if (currentRatio > targetRatio) {
+                            // Изображение шире - ограничиваем по ширине
+                            targetHeight = Math.round(targetWidth / targetRatio);
+                        } else {
+                            // Изображение выше - ограничиваем по высоте  
+                            targetWidth = Math.round(targetHeight * targetRatio);
+                        }
+                    } else {
+                        // Для обрезки и растяжения применяем точное соотношение
+                        targetHeight = Math.round(targetWidth / targetRatio);
+                    }
+                }
+
+                return { 
+                    width: Math.max(1, Math.round(targetWidth)), 
+                    height: Math.max(1, Math.round(targetHeight)) 
+                };
+            }
+
+            getMimeType(format) {
+                const mimeTypes = {
+                    'png': 'image/png',
+                    'jpeg': 'image/jpeg',
+                    'webp': 'image/webp'
+                };
+                return mimeTypes[format] || 'image/png';
+            }
+
+            downloadSingle(id) {
+                const processedImage = this.processedImages.find(img => img.id == id);
+                if (!processedImage) {
+                    alert('Сначала обработайте изображение');
+                    return;
+                }
+
+                this.downloadDataURL(
+                    processedImage.processedDataURL,
+                    this.getProcessedFileName(processedImage)
+                );
+            }
+
+            async downloadAllAsZip() {
+                if (this.processedImages.length === 0) {
+                    alert('Нет обработанных изображений');
+                    return;
+                }
+
+                const zip = new JSZip();
+                
+                for (const img of this.processedImages) {
+                    const base64Data = img.processedDataURL.split(',')[1];
+                    zip.file(this.getProcessedFileName(img), base64Data, { base64: true });
+                }
+
+                const content = await zip.generateAsync({ type: 'blob' });
+                this.downloadBlob(content, 'converted_images.zip');
+            }
+
+            downloadDataURL(dataURL, filename) {
+                const link = document.createElement('a');
+                link.href = dataURL;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            downloadBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+
+            getProcessedFileName(imageData) {
+                const baseName = imageData.name.replace(/\.[^/.]+$/, '');
+                const extension = imageData.processedFormat;
+                return `${baseName}_converted.${extension}`;
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            clearAll() {
+                this.images = [];
+                this.processedImages = [];
+                document.getElementById('imagesGrid').innerHTML = '';
+                document.getElementById('progressBar').classList.add('hidden');
+                document.getElementById('status').classList.add('hidden');
+                document.getElementById('fileInput').value = '';
+                this.updateButtons();
+            }
+        }
+
+        const converter = new ImageConverter();
+    </script>
+</body>
+</html>

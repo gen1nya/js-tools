@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ПЕКО Переводчик</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .translator-wrapper {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .text-area-container {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .language-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .char-count {
+            font-size: 0.9rem;
+            color: #888;
+            font-weight: normal;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: all 0.3s ease;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .swap-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .swap-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .swap-btn:hover {
+            transform: rotate(180deg) scale(1.1);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .info-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-panel h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .info-panel p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .example {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            margin: 10px 0;
+        }
+
+        .vocab-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .vocab-item {
+            background: white;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            font-family: 'Consolas', 'Monaco', monospace;
+            border: 1px solid #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .translator-wrapper {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌸 ПЕКО Переводчик 🌸</h1>
+            <p>Переводчик на загадочный язык ПЕКО</p>
+        </div>
+
+        <div class="translator-wrapper">
+            <div class="text-area-container">
+                <div class="language-label">
+                    <span id="leftLabel">Русский</span>
+                    <span class="char-count" id="leftCount">0 символов</span>
+                </div>
+                <textarea id="leftText" placeholder="Введите текст для перевода..."></textarea>
+            </div>
+
+            <div class="text-area-container">
+                <div class="language-label">
+                    <span id="rightLabel">ПЕКО</span>
+                    <span class="char-count" id="rightCount">0 символов</span>
+                </div>
+                <textarea id="rightText" placeholder="Результат перевода появится здесь..." readonly></textarea>
+            </div>
+        </div>
+
+        <div class="swap-container">
+            <button class="swap-btn" id="swapBtn" title="Поменять направление перевода">⇄</button>
+        </div>
+
+        <div class="info-panel">
+            <h3>Словарь языка ПЕКО</h3>
+            <p>Язык ПЕКО состоит из четырех основных слов:</p>
+            <div class="vocab-list">
+                <div class="vocab-item"><strong>п</strong> = 0</div>
+                <div class="vocab-item"><strong>пе</strong> = 1</div>
+                <div class="vocab-item"><strong>пек</strong> = 2</div>
+                <div class="vocab-item"><strong>пеко</strong> = 3</div>
+            </div>
+            
+            <h3>Как работает кодирование?</h3>
+            <p>Каждый символ исходного текста преобразуется в четверичную систему счисления и записывается словами ПЕКО. Между словами можно использовать разделители: [], !?;,.@</p>
+            
+            <div class="example">
+                <strong>Пример:</strong><br>
+                "А" (код 65) → п[пеко]п!п → "А" в четверичной системе с разделителями<br>
+                "Привет" → "пе,пеко[пек]п!пе.пеко..."
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PekoTranslator {
+            constructor() {
+                this.pekoWords = ['п', 'пе', 'пек', 'пеко'];
+                this.separators = ['[', ']', '!', '?', ';', ',', '.', '@'];
+                this.isReversed = false;
+                
+                this.leftText = document.getElementById('leftText');
+                this.rightText = document.getElementById('rightText');
+                this.leftLabel = document.getElementById('leftLabel');
+                this.rightLabel = document.getElementById('rightLabel');
+                this.leftCount = document.getElementById('leftCount');
+                this.rightCount = document.getElementById('rightCount');
+                this.swapBtn = document.getElementById('swapBtn');
+                
+                this.initEventListeners();
+            }
+            
+            initEventListeners() {
+                this.leftText.addEventListener('input', () => this.translate());
+                this.swapBtn.addEventListener('click', () => this.swapLanguages());
+                
+                this.leftText.addEventListener('input', () => this.updateCharCount());
+                this.rightText.addEventListener('input', () => this.updateCharCount());
+            }
+            
+            // Конвертирует число в четверичную систему, используя слова ПЕКО
+            numberToPeko(num) {
+                if (num === 0) return 'п';
+                
+                let result = [];
+                let temp = num;
+                
+                while (temp > 0) {
+                    result.unshift(this.pekoWords[temp % 4]);
+                    temp = Math.floor(temp / 4);
+                }
+                
+                return result.join(this.getRandomSeparator());
+            }
+            
+            // Случайный разделитель для красоты
+            getRandomSeparator() {
+                return this.separators[Math.floor(Math.random() * this.separators.length)];
+            }
+            
+            // Конвертирует слова ПЕКО обратно в число
+            pekoToNumber(pekoText) {
+                // Извлекаем только слова ПЕКО, игнорируя разделители
+                const matches = pekoText.match(/пеко|пек|пе|п/g);
+                if (!matches) return 0;
+                
+                let result = 0;
+                for (let i = 0; i < matches.length; i++) {
+                    const word = matches[i];
+                    const value = this.pekoWords.indexOf(word);
+                    result = result * 4 + value;
+                }
+                
+                return result;
+            }
+            
+            // Переводит текст в ПЕКО
+            toPeko(text) {
+                if (!text) return '';
+                
+                return text.split('').map(char => {
+                    const charCode = char.charCodeAt(0);
+                    return this.numberToPeko(charCode);
+                }).join(' ');
+            }
+            
+            // Переводит ПЕКО обратно в текст
+            fromPeko(pekoText) {
+                if (!pekoText.trim()) return '';
+                
+                try {
+                    // Разбиваем текст на группы (каждая группа = один символ)
+                    const groups = pekoText.split(/\s+/);
+                    
+                    return groups.map(group => {
+                        if (!group.trim()) return '';
+                        const charCode = this.pekoToNumber(group);
+                        return charCode > 0 ? String.fromCharCode(charCode) : '';
+                    }).join('');
+                } catch (error) {
+                    return 'Ошибка декодирования';
+                }
+            }
+            
+            translate() {
+                const inputText = this.leftText.value;
+                
+                if (!inputText.trim()) {
+                    this.rightText.value = '';
+                    return;
+                }
+                
+                try {
+                    if (this.isReversed) {
+                        // С ПЕКО на русский
+                        this.rightText.value = this.fromPeko(inputText);
+                    } else {
+                        // С русского на ПЕКО
+                        this.rightText.value = this.toPeko(inputText);
+                    }
+                } catch (error) {
+                    this.rightText.value = 'Ошибка перевода';
+                }
+            }
+            
+            swapLanguages() {
+                this.isReversed = !this.isReversed;
+                
+                if (this.isReversed) {
+                    this.leftLabel.textContent = 'ПЕКО';
+                    this.rightLabel.textContent = 'Русский';
+                    this.leftText.placeholder = 'Введите текст на языке ПЕКО...';
+                    this.rightText.placeholder = 'Результат перевода на русский...';
+                } else {
+                    this.leftLabel.textContent = 'Русский';
+                    this.rightLabel.textContent = 'ПЕКО';
+                    this.leftText.placeholder = 'Введите текст для перевода...';
+                    this.rightText.placeholder = 'Результат перевода на ПЕКО...';
+                }
+                
+                // Обмениваем содержимое полей
+                const temp = this.leftText.value;
+                this.leftText.value = this.rightText.value;
+                this.rightText.value = temp;
+                
+                this.translate();
+                this.updateCharCount();
+            }
+            
+            updateCharCount() {
+                this.leftCount.textContent = `${this.leftText.value.length} символов`;
+                this.rightCount.textContent = `${this.rightText.value.length} символов`;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            new PekoTranslator();
+        });
+    </script>
+</body>
+</html>

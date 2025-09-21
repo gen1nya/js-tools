@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конвертер аудиоформатов</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: rgba(102, 126, 234, 0.05);
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.1);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.15);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .browse-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .file-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .file-details {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .controls {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        select:focus, input[type="range"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .range-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .convert-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+            display: none;
+        }
+
+        .convert-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .convert-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-container {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .result {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            background: #f0f8f0;
+            border-radius: 10px;
+            border: 2px solid #4caf50;
+        }
+
+        .download-btn {
+            background: #4caf50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .error {
+            background: #ffe6e6;
+            border: 2px solid #ff4444;
+            color: #cc0000;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .supported-formats {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .supported-formats h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .supported-formats p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .format-list {
+            color: #667eea;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Конвертер аудиоформатов</h1>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text">Перетащите аудиофайл сюда или нажмите для выбора</div>
+            <button class="browse-btn" id="browseBtn">
+                Выбрать файл
+            </button>
+            <input type="file" id="fileInput" class="file-input" accept="audio/*">
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="file-info" id="fileInfo">
+            <div class="file-name" id="fileName"></div>
+            <div class="file-details" id="fileDetails"></div>
+        </div>
+
+        <div class="controls" id="controls">
+            <div class="control-group">
+                <label for="outputFormat">Выходной формат:</label>
+                <select id="outputFormat">
+                    <option value="wav">WAV (без сжатия)</option>
+                    <option value="webm">WebM (Vorbis)</option>
+                    <option value="mp4">MP4 (AAC)</option>
+                    <option value="ogg">OGG (если поддерживается)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="quality">Качество (битрейт):</label>
+                <input type="range" id="quality" min="64" max="320" value="128" step="32">
+                <span class="range-value" id="qualityValue">128 kbps</span>
+            </div>
+
+            <div class="control-group">
+                <label for="sampleRate">Частота дискретизации:</label>
+                <select id="sampleRate">
+                    <option value="22050">22.05 kHz</option>
+                    <option value="44100" selected>44.1 kHz</option>
+                    <option value="48000">48 kHz</option>
+                    <option value="96000">96 kHz</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="convert-btn" id="convertBtn">🔄 Конвертировать</button>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Обработка...</div>
+        </div>
+
+        <div class="result" id="result">
+            <p>✅ Конвертация завершена!</p>
+            <a class="download-btn" id="downloadBtn" download>📥 Скачать файл</a>
+        </div>
+
+        <div class="supported-formats">
+            <h3>📋 Поддерживаемые форматы</h3>
+            <p><strong>Входные:</strong> <span class="format-list">MP3, WAV, OGG, M4A, AAC, FLAC, WMA</span> и другие форматы, поддерживаемые браузером</p>
+            <p><strong>Выходные:</strong> <span class="format-list">WAV, WebM, MP4</span> (зависит от возможностей браузера)</p>
+        </div>
+    </div>
+
+    <script>
+        class AudioConverter {
+            constructor() {
+                this.audioContext = null;
+                this.currentFile = null;
+                this.audioBuffer = null;
+                
+                this.initializeElements();
+                this.attachEventListeners();
+            }
+
+            initializeElements() {
+                this.uploadArea = document.getElementById('uploadArea');
+                this.fileInput = document.getElementById('fileInput');
+                this.browseBtn = document.getElementById('browseBtn');
+                this.fileInfo = document.getElementById('fileInfo');
+                this.fileName = document.getElementById('fileName');
+                this.fileDetails = document.getElementById('fileDetails');
+                this.controls = document.getElementById('controls');
+                this.convertBtn = document.getElementById('convertBtn');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressFill = document.getElementById('progressFill');
+                this.progressText = document.getElementById('progressText');
+                this.result = document.getElementById('result');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.error = document.getElementById('error');
+                this.outputFormat = document.getElementById('outputFormat');
+                this.quality = document.getElementById('quality');
+                this.qualityValue = document.getElementById('qualityValue');
+                this.sampleRate = document.getElementById('sampleRate');
+            }
+
+            attachEventListeners() {
+                // Drag & Drop
+                this.uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.add('dragover');
+                });
+
+                this.uploadArea.addEventListener('dragleave', () => {
+                    this.uploadArea.classList.remove('dragover');
+                });
+
+                this.uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadArea.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.handleFile(files[0]);
+                    }
+                });
+
+                // File input
+                this.fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.handleFile(e.target.files[0]);
+                    }
+                });
+
+                // Quality slider
+                this.quality.addEventListener('input', (e) => {
+                    this.qualityValue.textContent = e.target.value + ' kbps';
+                });
+
+                // Convert button
+                this.convertBtn.addEventListener('click', () => {
+                    this.convertAudio();
+                });
+
+                // Browse button
+                this.browseBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.fileInput.click();
+                });
+
+                // Upload area click (but not on button)
+                this.uploadArea.addEventListener('click', (e) => {
+                    if (e.target !== this.browseBtn && !this.browseBtn.contains(e.target)) {
+                        this.fileInput.click();
+                    }
+                });
+            }
+
+            showError(message) {
+                this.error.textContent = message;
+                this.error.style.display = 'block';
+                setTimeout(() => {
+                    this.error.style.display = 'none';
+                }, 5000);
+            }
+
+            hideError() {
+                this.error.style.display = 'none';
+            }
+
+            async handleFile(file) {
+                if (!file.type.startsWith('audio/')) {
+                    this.showError('Пожалуйста, выберите аудиофайл');
+                    return;
+                }
+
+                this.hideError();
+                this.currentFile = file;
+
+                // Show file info
+                this.fileName.textContent = file.name;
+                this.fileDetails.textContent = `Размер: ${(file.size / 1024 / 1024).toFixed(2)} МБ | Тип: ${file.type}`;
+                this.fileInfo.style.display = 'block';
+
+                // Initialize Web Audio API
+                try {
+                    if (!this.audioContext) {
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+
+                    // Decode audio file
+                    const arrayBuffer = await file.arrayBuffer();
+                    this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+
+                    // Update file details with audio info
+                    const duration = this.audioBuffer.duration;
+                    const channels = this.audioBuffer.numberOfChannels;
+                    const sampleRate = this.audioBuffer.sampleRate;
+                    
+                    this.fileDetails.textContent += ` | Длительность: ${Math.floor(duration / 60)}:${(duration % 60).toFixed(0).padStart(2, '0')} | Каналы: ${channels} | Частота: ${sampleRate} Hz`;
+
+                    // Show controls
+                    this.controls.style.display = 'block';
+                    this.convertBtn.style.display = 'block';
+
+                } catch (error) {
+                    this.showError('Ошибка при загрузке аудиофайла: ' + error.message);
+                }
+            }
+
+            async convertAudio() {
+                if (!this.audioBuffer) {
+                    this.showError('Сначала загрузите аудиофайл');
+                    return;
+                }
+
+                this.convertBtn.disabled = true;
+                this.progressContainer.style.display = 'block';
+                this.result.style.display = 'none';
+
+                try {
+                    const format = this.outputFormat.value;
+                    const quality = parseInt(this.quality.value);
+                    const targetSampleRate = parseInt(this.sampleRate.value);
+
+                    this.updateProgress(10, 'Подготовка...');
+
+                    let convertedBlob;
+                    
+                    if (format === 'wav') {
+                        convertedBlob = await this.convertToWAV(targetSampleRate);
+                    } else {
+                        convertedBlob = await this.convertWithMediaRecorder(format, quality, targetSampleRate);
+                    }
+
+                    this.updateProgress(100, 'Готово!');
+
+                    // Create download link
+                    const url = URL.createObjectURL(convertedBlob);
+                    const extension = format === 'webm' ? 'webm' : format;
+                    const fileName = this.currentFile.name.replace(/\.[^/.]+$/, '') + '.' + extension;
+                    
+                    this.downloadBtn.href = url;
+                    this.downloadBtn.download = fileName;
+                    this.result.style.display = 'block';
+
+                } catch (error) {
+                    this.showError('Ошибка при конвертации: ' + error.message);
+                } finally {
+                    this.convertBtn.disabled = false;
+                    setTimeout(() => {
+                        this.progressContainer.style.display = 'none';
+                    }, 1000);
+                }
+            }
+
+            async convertToWAV(targetSampleRate) {
+                this.updateProgress(30, 'Ресемплинг аудио...');
+
+                let audioBuffer = this.audioBuffer;
+                
+                // Resample if needed
+                if (targetSampleRate !== audioBuffer.sampleRate) {
+                    audioBuffer = await this.resampleAudio(audioBuffer, targetSampleRate);
+                }
+
+                this.updateProgress(60, 'Создание WAV файла...');
+
+                const numberOfChannels = audioBuffer.numberOfChannels;
+                const length = audioBuffer.length;
+                const sampleRate = audioBuffer.sampleRate;
+
+                // Create WAV buffer
+                const arrayBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2);
+                const view = new DataView(arrayBuffer);
+
+                // WAV header
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                };
+
+                writeString(0, 'RIFF');
+                view.setUint32(4, 36 + length * numberOfChannels * 2, true);
+                writeString(8, 'WAVE');
+                writeString(12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, numberOfChannels, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * numberOfChannels * 2, true);
+                view.setUint16(32, numberOfChannels * 2, true);
+                view.setUint16(34, 16, true);
+                writeString(36, 'data');
+                view.setUint32(40, length * numberOfChannels * 2, true);
+
+                // Convert samples
+                let offset = 44;
+                for (let i = 0; i < length; i++) {
+                    for (let channel = 0; channel < numberOfChannels; channel++) {
+                        const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]));
+                        view.setInt16(offset, sample * 0x7FFF, true);
+                        offset += 2;
+                    }
+                }
+
+                this.updateProgress(90, 'Финализация...');
+
+                return new Blob([arrayBuffer], { type: 'audio/wav' });
+            }
+
+            async convertWithMediaRecorder(format, quality, targetSampleRate) {
+                return new Promise((resolve, reject) => {
+                    this.updateProgress(30, 'Создание аудио контекста...');
+
+                    // Create offline audio context for processing
+                    const offlineContext = new OfflineAudioContext(
+                        this.audioBuffer.numberOfChannels,
+                        this.audioBuffer.length * (targetSampleRate / this.audioBuffer.sampleRate),
+                        targetSampleRate
+                    );
+
+                    const source = offlineContext.createBufferSource();
+                    source.buffer = this.audioBuffer;
+                    source.connect(offlineContext.destination);
+                    source.start();
+
+                    offlineContext.startRendering().then(renderedBuffer => {
+                        this.updateProgress(50, 'Запись аудио...');
+
+                        // Create a new audio context for playback
+                        const playbackContext = new AudioContext();
+                        const source = playbackContext.createBufferSource();
+                        source.buffer = renderedBuffer;
+
+                        // Create MediaStreamDestination
+                        const destination = playbackContext.createMediaStreamDestination();
+                        source.connect(destination);
+
+                        // Setup MediaRecorder
+                        const mimeType = this.getMimeType(format);
+                        const options = { mimeType };
+                        
+                        if (quality) {
+                            options.audioBitsPerSecond = quality * 1000;
+                        }
+
+                        const mediaRecorder = new MediaRecorder(destination.stream, options);
+                        const chunks = [];
+
+                        mediaRecorder.ondataavailable = (event) => {
+                            if (event.data.size > 0) {
+                                chunks.push(event.data);
+                            }
+                        };
+
+                        mediaRecorder.onstop = () => {
+                            const blob = new Blob(chunks, { type: mimeType });
+                            resolve(blob);
+                        };
+
+                        mediaRecorder.onerror = (event) => {
+                            reject(new Error('MediaRecorder error: ' + event.error));
+                        };
+
+                        // Start recording
+                        mediaRecorder.start();
+                        source.start();
+
+                        // Stop recording when audio ends
+                        setTimeout(() => {
+                            mediaRecorder.stop();
+                            source.stop();
+                            playbackContext.close();
+                        }, (renderedBuffer.duration + 0.1) * 1000);
+
+                        this.updateProgress(80, 'Обработка...');
+                    }).catch(reject);
+                });
+            }
+
+            getMimeType(format) {
+                const mimeTypes = {
+                    'webm': 'audio/webm;codecs=opus',
+                    'mp4': 'audio/mp4',
+                    'ogg': 'audio/ogg;codecs=opus'
+                };
+                return mimeTypes[format] || 'audio/webm';
+            }
+
+            async resampleAudio(audioBuffer, targetSampleRate) {
+                const offlineContext = new OfflineAudioContext(
+                    audioBuffer.numberOfChannels,
+                    audioBuffer.duration * targetSampleRate,
+                    targetSampleRate
+                );
+
+                const source = offlineContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(offlineContext.destination);
+                source.start();
+
+                return await offlineContext.startRendering();
+            }
+
+            updateProgress(percent, text) {
+                this.progressFill.style.width = percent + '%';
+                this.progressText.textContent = text;
+            }
+        }
+
+        // Initialize the converter when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new AudioConverter();
+        });
+    </script>
+</body>
+</html>
