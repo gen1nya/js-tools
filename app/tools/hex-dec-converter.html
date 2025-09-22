@@ -63,6 +63,8 @@
             font-family: 'Courier New', monospace;
             transition: all 0.3s ease;
             background: rgba(255, 255, 255, 0.8);
+            word-break: break-all;
+            min-height: 50px;
         }
 
         input:focus {
@@ -112,6 +114,8 @@
             font-family: 'Courier New', monospace;
             word-break: break-all;
             line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .binary-grouped {
@@ -129,6 +133,8 @@
             font-size: 0.9em;
             cursor: help;
             transition: all 0.3s ease;
+            text-align: center;
+            min-width: 80px;
         }
 
         .binary-byte:hover {
@@ -169,6 +175,7 @@
             font-size: 1.2em;
             font-weight: bold;
             font-family: 'Courier New', monospace;
+            word-break: break-word;
         }
 
         .clear-btn {
@@ -206,6 +213,15 @@
             margin: 10px 0;
         }
 
+        .bigint-info {
+            background: rgba(155, 89, 182, 0.2);
+            border: 1px solid #9b59b6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -230,17 +246,17 @@
     <div class="converter-grid">
         <div class="input-group">
             <label for="hexInput">Шестнадцатеричное (HEX):</label>
-            <input type="text" id="hexInput" placeholder="Например: FF, 0xFF, DEADBEEF">
+            <input type="text" id="hexInput" placeholder="Например: FF, 0xFF, DEADBEEF, очень длинные строки...">
         </div>
 
         <div class="input-group">
             <label for="decInput">Десятичное (DEC):</label>
-            <input type="text" id="decInput" placeholder="Например: 255, -128">
+            <input type="text" id="decInput" placeholder="Например: 255, -128, очень большие числа...">
         </div>
 
         <div class="input-group">
             <label for="binInput">Двоичное (BIN):</label>
-            <input type="text" id="binInput" placeholder="Например: 11111111, 0b10101010">
+            <input type="text" id="binInput" placeholder="Например: 11111111, 0b10101010, очень длинные строки...">
         </div>
     </div>
 
@@ -348,7 +364,7 @@
             } else if (source === 'dec' && decInput.value.trim()) {
                 const dec = decInput.value.trim();
                 if (/^-?\d+$/.test(dec)) {
-                    value = parseInt(dec, 10);
+                    value = BigInt(dec);
                 }
             } else if (source === 'bin' && binInput.value.trim()) {
                 const bin = binInput.value.trim().replace(/^0b/i, '');
@@ -383,12 +399,12 @@
             hex = bytes.reverse().join('');
         }
 
-        let value = parseInt(hex, 16);
+        let value = BigInt('0x' + hex);
 
         if (interpretation.value === 'signed') {
             const bitCount = hex.length * 4;
-            const maxSigned = Math.pow(2, bitCount - 1);
-            const maxUnsigned = Math.pow(2, bitCount);
+            const maxSigned = BigInt(2) ** BigInt(bitCount - 1);
+            const maxUnsigned = BigInt(2) ** BigInt(bitCount);
 
             if (value >= maxSigned) {
                 value = value - maxUnsigned;
@@ -410,12 +426,12 @@
             bin = bytes.reverse().join('');
         }
 
-        let value = parseInt(bin, 2);
+        let value = BigInt('0b' + bin);
 
         if (interpretation.value === 'signed') {
-            const bitCount = bin.length;
-            const maxSigned = Math.pow(2, bitCount - 1);
-            const maxUnsigned = Math.pow(2, bitCount);
+            const bitCount = BigInt(bin.length);
+            const maxSigned = BigInt(2) ** (bitCount - BigInt(1));
+            const maxUnsigned = BigInt(2) ** bitCount;
 
             if (value >= maxSigned) {
                 value = value - maxUnsigned;
@@ -447,10 +463,11 @@
         }
 
         let hex;
-        if (value < 0) {
+        if (value < 0n) {
+            // Определяем минимальное количество бит для представления
             const minBits = originalHex.length > 0 ? originalHex.length * 4 : 32;
             const bitCount = Math.max(minBits, 32);
-            const maxUnsigned = Math.pow(2, bitCount);
+            const maxUnsigned = BigInt(2) ** BigInt(bitCount);
             hex = (value + maxUnsigned).toString(16);
         } else {
             hex = value.toString(16);
@@ -475,9 +492,9 @@
 
     function formatBinWithEndianness(value) {
         let bin;
-        if (value < 0) {
-            const bitCount = Math.max(8, Math.ceil(Math.log2(Math.abs(value)) / 8) * 8);
-            const maxUnsigned = Math.pow(2, bitCount);
+        if (value < 0n) {
+            const bitCount = Math.max(8, Math.ceil(Math.log2(Number(value < 0n ? -value : value)) / 8) * 8);
+            const maxUnsigned = BigInt(2) ** BigInt(bitCount);
             bin = (value + maxUnsigned).toString(2);
         } else {
             bin = value.toString(2);
@@ -501,7 +518,7 @@
         if (decInput.value.trim()) {
             const dec = decInput.value.trim();
             if (/^-?\d+$/.test(dec)) {
-                return parseInt(dec, 10);
+                return BigInt(dec);
             }
         }
         return null;
@@ -539,22 +556,26 @@
             displayBytes.reverse();
         }
 
+        const isBigNumber = hex.length > 16; // Больше 8 байт считаем большим числом
+
         document.getElementById('hexDisplay').innerHTML = `
-                <div style="margin-bottom: 10px;">
-                    <strong>Шестнадцатеричное представление (${byteOrder.value === 'big' ? 'Big' : 'Little'} Endian):</strong>
-                </div>
-                <div class="binary-grouped">
-                    ${displayBytes.map((byte, index) => {
+            <div style="margin-bottom: 10px;">
+                <strong>Шестнадцатеричное представление (${byteOrder.value === 'big' ? 'Big' : 'Little'} Endian):</strong>
+                ${isBigNumber ? '<div class="bigint-info">⚡ Использование BigInt для больших чисел</div>' : ''}
+            </div>
+            <div class="binary-grouped">
+                ${displayBytes.map((byte, index) => {
             const position = byteOrder.value === 'big' ? index : displayBytes.length - 1 - index;
             const decimal = parseInt(byte, 16);
             return `<span class="binary-byte" title="Байт ${position}: ${decimal} dec">${byte}</span>`;
         }).join('')}
-                </div>
-                <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
-                    Порядок байтов: ${displayBytes.join(' ')}<br>
-                    ${byteOrder.value === 'big' ? 'Старший байт слева' : 'Младший байт слева'}
-                </div>
-            `;
+            </div>
+            <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                Порядок байтов: ${displayBytes.join(' ')}<br>
+                ${byteOrder.value === 'big' ? 'Старший байт слева' : 'Младший байт слева'}<br>
+                Общая длина: ${hex.length / 2} байт (${hex.length * 4} бит)
+            </div>
+        `;
     }
 
     function updateBinaryDisplay() {
@@ -578,21 +599,25 @@
             displayBytes.reverse();
         }
 
+        const isBigNumber = binary.length > 64; // Больше 8 байт
+
         document.getElementById('binaryDisplay').innerHTML = `
-                <div style="margin-bottom: 10px;">
-                    <strong>Двоичное представление (${byteOrder.value === 'big' ? 'Big' : 'Little'} Endian):</strong>
-                </div>
-                <div class="binary-grouped">
-                    ${displayBytes.map((byte, index) => {
+            <div style="margin-bottom: 10px;">
+                <strong>Двоичное представление (${byteOrder.value === 'big' ? 'Big' : 'Little'} Endian):</strong>
+                ${isBigNumber ? '<div class="bigint-info">⚡ Использование BigInt для больших чисел</div>' : ''}
+            </div>
+            <div class="binary-grouped">
+                ${displayBytes.map((byte, index) => {
             const position = byteOrder.value === 'big' ? index : displayBytes.length - 1 - index;
             return `<span class="binary-byte" title="Байт ${position}">${byte}</span>`;
         }).join('')}
-                </div>
-                <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
-                    Порядок байтов: ${displayBytes.join(' ')}<br>
-                    ${byteOrder.value === 'big' ? 'Старший байт слева' : 'Младший байт слева'}
-                </div>
-            `;
+            </div>
+            <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                Порядок байтов: ${displayBytes.join(' ')}<br>
+                ${byteOrder.value === 'big' ? 'Старший байт слева' : 'Младший байт слева'}<br>
+                Общая длина: ${bytes.length} байт (${binary.length} бит)
+            </div>
+        `;
     }
 
     function updateUtf8Display() {
@@ -642,48 +667,52 @@
                 }
             }
 
+            const isBigData = bytes.length > 32; // Больше 32 байт считаем большими данными
+
             document.getElementById('utf8Display').innerHTML = `
-                    <div style="margin-bottom: 10px;">
-                        <strong>UTF-8 интерпретация:</strong>
-                    </div>
-                    ${validUtf8 ? `
-                        <div class="utf8-panel">
-                            <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; font-family: 'Segoe UI', sans-serif;">
-                                "${utf8String}"
-                            </div>
-                            <div style="font-size: 0.9em; opacity: 0.8;">
-                                Валидная UTF-8 строка (${utf8String.length} символов)
-                            </div>
+                <div style="margin-bottom: 10px;">
+                    <strong>UTF-8 интерпретация:</strong>
+                    ${isBigData ? '<div class="bigint-info">📚 Большой объем данных - показаны первые и последние байты</div>' : ''}
+                </div>
+                ${validUtf8 ? `
+                    <div class="utf8-panel">
+                        <div style="font-size: 1.2em; font-weight: bold; margin-bottom: 10px; font-family: 'Segoe UI', sans-serif;">
+                            "${utf8String.length > 100 ? utf8String.substring(0, 100) + '...' : utf8String}"
                         </div>
-                    ` : `
-                        <div class="utf8-error">
-                            <div style="font-size: 1em; font-weight: bold; margin-bottom: 5px;">
-                                Невалидная UTF-8 последовательность
-                            </div>
-                            <div style="font-size: 0.9em; opacity: 0.8;">
-                                Показаны отдельные байты как ASCII
-                            </div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">
+                            Валидная UTF-8 строка (${utf8String.length} символов)
                         </div>
-                    `}
-                    <div class="binary-grouped">
-                        ${byteInfo.map(info => `
-                            <span class="binary-byte" title="HEX: ${info.hex}, DEC: ${info.dec}, ASCII: ${info.char}">
-                                ${info.hex}<br>
-                                <span style="font-size: 0.8em; opacity: 0.7;">'${info.char}'</span>
-                            </span>
-                        `).join('')}
                     </div>
-                    <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
-                        Каждый блок: HEX байт / ASCII символ<br>
-                        • = непечатаемый символ
+                ` : `
+                    <div class="utf8-error">
+                        <div style="font-size: 1em; font-weight: bold; margin-bottom: 5px;">
+                            Невалидная UTF-8 последовательность
+                        </div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">
+                            Показаны отдельные байты как ASCII
+                        </div>
                     </div>
-                `;
+                `}
+                <div class="binary-grouped">
+                    ${(isBigData ? byteInfo.slice(0, 16).concat([{hex: '...', dec: '...', char: '...'}], byteInfo.slice(-8)) : byteInfo).map(info => `
+                        <span class="binary-byte" title="HEX: ${info.hex}, DEC: ${info.dec}, ASCII: ${info.char}">
+                            ${info.hex}<br>
+                            <span style="font-size: 0.8em; opacity: 0.7;">'${info.char}'</span>
+                        </span>
+                    `).join('')}
+                </div>
+                <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                    Каждый блок: HEX байт / ASCII символ<br>
+                    • = непечатаемый символ
+                    ${isBigData ? '<br>... = пропущенные байты для экономии места' : ''}
+                </div>
+            `;
         } catch (e) {
             document.getElementById('utf8Display').innerHTML = `
-                    <div class="utf8-error">
-                        <strong>Ошибка при декодировании:</strong> ${e.message}
-                    </div>
-                `;
+                <div class="utf8-error">
+                    <strong>Ошибка при декодировании:</strong> ${e.message}
+                </div>
+            `;
         }
     }
 
@@ -691,48 +720,56 @@
         const isSigned = interpretation.value === 'signed';
         let binary;
 
-        if (isSigned && value < 0) {
-            binary = (value >>> 0).toString(2);
+        if (isSigned && value < 0n) {
+            // Для отрицательных чисел нужно вычислить дополнение до двух
+            const bitLength = hexInput.value.trim() ? (hexInput.value.trim().replace(/^0x/i, '').length * 4) : 
+                              binInput.value.trim() ? binInput.value.trim().replace(/^0b/i, '').length : 32;
+            const maxUnsigned = BigInt(2) ** BigInt(bitLength);
+            binary = (value + maxUnsigned).toString(2);
         } else {
-            binary = Math.abs(value).toString(2);
+            binary = value < 0n ? (-value).toString(2) : value.toString(2);
         }
 
         const bitCount = Math.max(8, Math.ceil(binary.length / 8) * 8);
         const byteCount = bitCount / 8;
 
-        document.getElementById('bitCount').textContent = bitCount;
-        document.getElementById('byteCount').textContent = byteCount;
+        document.getElementById('bitCount').textContent = bitCount.toString();
+        document.getElementById('byteCount').textContent = byteCount.toString();
 
-        let javaType = 'long';
-        let range = '';
+        // Определение Java типа с поддержкой BigInteger
+        let javaType = 'BigInteger';
+        let range = 'Неограниченный (любые числа)';
 
-        if (isSigned) {
-            if (value >= -128 && value <= 127 && bitCount <= 8) {
-                javaType = 'byte';
-                range = '-128 .. 127';
-            } else if (value >= -32768 && value <= 32767 && bitCount <= 16) {
-                javaType = 'short';
-                range = '-32,768 .. 32,767';
-            } else if (value >= -2147483648 && value <= 2147483647 && bitCount <= 32) {
-                javaType = 'int';
-                range = '-2,147,483,648 .. 2,147,483,647';
+        // Проверяем, помещается ли в стандартные типы Java
+        if (byteCount <= 8) {
+            if (isSigned) {
+                if (value >= -128n && value <= 127n && bitCount <= 8) {
+                    javaType = 'byte';
+                    range = '-128 .. 127';
+                } else if (value >= -32768n && value <= 32767n && bitCount <= 16) {
+                    javaType = 'short';
+                    range = '-32,768 .. 32,767';
+                } else if (value >= -2147483648n && value <= 2147483647n && bitCount <= 32) {
+                    javaType = 'int';
+                    range = '-2,147,483,648 .. 2,147,483,647';
+                } else if (value >= -9223372036854775808n && value <= 9223372036854775807n && bitCount <= 64) {
+                    javaType = 'long';
+                    range = '-9,223,372,036,854,775,808 .. 9,223,372,036,854,775,807';
+                }
             } else {
-                javaType = 'long';
-                range = '-9,223,372,036,854,775,808 .. 9,223,372,036,854,775,807';
-            }
-        } else {
-            if (value <= 255 && bitCount <= 8) {
-                javaType = 'byte (unsigned)';
-                range = '0 .. 255';
-            } else if (value <= 65535 && bitCount <= 16) {
-                javaType = 'short (unsigned)';
-                range = '0 .. 65,535';
-            } else if (value <= 4294967295 && bitCount <= 32) {
-                javaType = 'int (unsigned)';
-                range = '0 .. 4,294,967,295';
-            } else {
-                javaType = 'long (unsigned)';
-                range = '0 .. 18,446,744,073,709,551,615';
+                if (value <= 255n && bitCount <= 8) {
+                    javaType = 'byte (unsigned)';
+                    range = '0 .. 255';
+                } else if (value <= 65535n && bitCount <= 16) {
+                    javaType = 'short (unsigned)';
+                    range = '0 .. 65,535';
+                } else if (value <= 4294967295n && bitCount <= 32) {
+                    javaType = 'int (unsigned)';
+                    range = '0 .. 4,294,967,295';
+                } else if (value <= 18446744073709551615n && bitCount <= 64) {
+                    javaType = 'long (unsigned)';
+                    range = '0 .. 18,446,744,073,709,551,615';
+                }
             }
         }
 
@@ -758,5 +795,4 @@
     }
 </script>
 </body>
-</html>
 </html>
