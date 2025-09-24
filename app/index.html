@@ -131,7 +131,6 @@
             text-align: center;
         }
 
-        /* Мобильная адаптация */
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -182,214 +181,124 @@
         <p class="subtitle" data-text="subtitle">Простые инструменты без всякой хуйни</p>
 
         <div class="language-switch">
-            <button class="lang-btn active" onclick="switchLanguage('ru')">🇷🇺 Русский</button>
-            <button class="lang-btn" onclick="switchLanguage('en')">🇺🇸 English</button>
+            <button class="lang-btn" data-lang="ru">🇷🇺 Русский</button>
+            <button class="lang-btn" data-lang="en">🇺🇸 English</button>
+            <button class="lang-btn" data-lang="el">🇬🇷 Ελληνικά</button>
         </div>
     </div>
 
-    <div class="description" data-text="description">
-        <p>Эта страница не использует куки, не собирает аналитику и не показывает рекламу. Она вообще не знает, кто вы и откуда пришли.</p>
-        <p>Здесь просто набор инструментов, которые конкретно мне сделали жизнь проще, но возможно подойдут и вам.</p>
-    </div>
+    <div class="description" data-text="description"></div>
 
-    <div class="tools-grid" id="tools-grid">
-        <!-- Инструменты будут добавлены через JavaScript -->
-    </div>
+    <div class="tools-grid" id="tools-grid"></div>
 
-    <div class="footer" data-text="footer">
-        Сделано на коленке, работает без интернета после загрузки. <a href="https://github.com/gen1nya/js-tools">Исходники</a>
-    </div>
+    <div class="footer" data-text="footer"></div>
 </div>
 
 <script>
-    // Переводы
     const translations = {
         ru: {
             title: "Веб до того, как он стал ебаным",
             subtitle: "Простые инструменты без всякой хуйни",
             description: `
-                    <p>Эта страница не использует куки, не собирает аналитику и не показывает рекламу. Она вообще не знает, кто вы и откуда пришли.</p>
-                    <p>Здесь просто набор инструментов, которые конкретно мне сделали жизнь проще, но возможно подойдут и вам.</p>
-                `,
-            footer: "Сделано на коленке, силами клоды и чатжпт. Исходники скоро.",
+                <p>Эта страница не использует куки, не собирает аналитику и не показывает рекламу. Она вообще не знает, кто вы и откуда пришли.</p>
+                <p>Здесь просто набор инструментов, которые конкретно мне сделали жизнь проще, но возможно подойдут и вам.</p>
+            `,
+            footer: "Сделано на коленке, силами клоды и чатжпт. <a href=\"https://github.com/gen1nya/js-tools\">Исходники</a>",
             tools: [
-                {
-                    name: "peko",
-                    icon: "🐰",
-                    title: "Пеко",
-                    desc: "Пеко пеко пеко пеко пеко пеко пеко пеко пеко"
-                },
-                {
-                    name: "json_validator",
-                    icon: "🗄️",
-                    title: "Json-бьютификатор",
-                    desc: "Форматирует/валидирует JSON"
-                },
-                {
-                    name: "image-converter",
-                    icon: "🖼️",
-                    title: "Конвертер изображений",
-                    desc: "Конвертирует изображения в разные форматы и размеры"
-                },
-                {
-                    name: "btc_generator",
-                    icon: "💰",
-                    title: "Генератор BTC кошельков",
-                    desc: "Создаёт BTC адреса и ключи. Работает оффлайн. Обновляется при перезагрузке страницы"
-                },
-                {
-                    name: "colors",
-                    icon: "🎨",
-                    title: "Цвета",
-                    desc: "Палитры, коды, всё для работы с цветом"
-                },
-                {
-                    name: "twitch_iframe",
-                    icon: "📺",
-                    title: "Айфрейм твича",
-                    desc: "Фиолетовый шакал скачать обои"
-                },
-                {
-                    name: "qr_generator_reader",
-                    icon: "📱",
-                    title: "QR коды",
-                    desc: "Генерит и читает QR коды"
-                },
-                {
-                    name: "audio_converter",
-                    icon: "🎵",
-                    title: "Аудио конвертер",
-                    desc: "Конвертирует аудио файлы в разные форматы и битрейты"
-                },
-                {
-                    name: "hex-dec-converter",
-                    icon: "🔢",
-                    title: "Hex-Dec конвертер",
-                    desc: "Конвертирует числа между шестнадцатеричным и десятичным форматами"
-                },
-                {
-                    name: "base-utf-converter",
-                    icon: "🔤",
-                    title: "Base64/58 конвертер",
-                    desc: "Конвертирует в Base64/58 и обратно"
-                }
+                { name: "peko", icon: "🐰", title: "Пеко", desc: "Пеко пеко пеко пеко пеко пеко пеко пеко пеко" },
+                { name: "json_validator", icon: "🗄️", title: "Json-бьютификатор", desc: "Форматирует/валидирует JSON" },
+                { name: "image-converter", icon: "🖼️", title: "Конвертер изображений", desc: "Конвертирует изображения в разные форматы и размеры" },
+                { name: "btc_generator", icon: "💰", title: "Генератор BTC кошельков", desc: "Создаёт BTC адреса и ключи. Работает оффлайн. Обновляется при перезагрузке страницы" },
+                { name: "colors", icon: "🎨", title: "Цвета", desc: "Палитры, коды, всё для работы с цветом" },
+                { name: "twitch_iframe", icon: "📺", title: "Айфрейм твича", desc: "Фиолетовый шакал скачать обои" },
+                { name: "qr_generator_reader", icon: "📱", title: "QR коды", desc: "Генерит и читает QR коды" },
+                { name: "audio_converter", icon: "🎵", title: "Аудио конвертер", desc: "Конвертирует аудио файлы в разные форматы и битрейты" },
+                { name: "hex-dec-converter", icon: "🔢", title: "Hex-Dec конвертер", desc: "Конвертирует числа между шестнадцатеричным и десятичным форматами" },
+                { name: "base-utf-converter", icon: "🔤", title: "Base64/58 конвертер", desc: "Конвертирует в Base64/58 и обратно" }
             ]
         },
         en: {
             title: "Web before it became fucked up",
             subtitle: "Simple tools without any bullshit",
             description: `
-                    <p>This page doesn't use cookies, doesn't collect analytics, and doesn't show ads. It doesn't know who you are or where you came from.</p>
-                    <p>Here's just a set of tools that made my life easier, but might work for you too.</p>
-                    <p>Not everything translated to English yet, but I'm working on it, and PRs are welcome.</p>
-                `,
+                <p>This page doesn't use cookies, doesn't collect analytics, and doesn't show ads. It doesn't know who you are or where you came from.</p>
+                <p>Here's just a set of tools that made my life easier, but might work for you too.</p>
+                <p>Not everything translated to English yet, but I'm working on it, and PRs are welcome.</p>
+            `,
             footer: "Made on my knee with the help of Claude and ChatGPT.  <a href=\"https://github.com/gen1nya/js-tools\">Source code</a>",
             tools: [
-                {
-                    name: "peko",
-                    icon: "🐰",
-                    title: "Peko",
-                    desc: "peko peko peko peko peko peko peko peko peko peko peko peko peko peko peko peko"
-                },
-                {
-                    name: "json_validator",
-                    icon: "🗄️",
-                    title: "Json-Beautifier",
-                    desc: "Formats/validates JSON"
-                },
-                {
-                    name: "image-converter",
-                    icon: "🖼️",
-                    title: "Image Converter",
-                    desc: "Converts images to different formats and sizes"
-                },
-                {
-                    name: "btc_generator",
-                    icon: "💰",
-                    title: "BTC Wallet Generator",
-                    desc: "Creates BTC addresses and keys. Works offline. Updates on page reload"
-                },
-                {
-                    name: "colors",
-                    icon: "🎨",
-                    title: "Colors",
-                    desc: "Palettes, codes, everything for working with color"
-                },
-                {
-                    name: "twitch_iframe",
-                    icon: "📺",
-                    title: "Twitch Iframe",
-                    desc: "Purple jackal download wallpapers"
-                },
-                {
-                    name: "qr_generator_reader",
-                    icon: "📱",
-                    title: "QR Codes",
-                    desc: "Generates and reads QR codes"
-                },
-                {
-                    name: "audio_converter",
-                    icon: "🎵",
-                    title: "Audio Converter",
-                    desc: "Converts audio files to different formats and bitrates"
-                },
-                {
-                    name: "hex-dec-converter",
-                    icon: "🔢",
-                    title: "Hex-Dec Converter",
-                    desc: "Converts numbers between hexadecimal and decimal formats"
-                },
-                {
-                    name: "base-utf-converter",
-                    icon: "🔤",
-                    title: "Base64/58 Converter",
-                    desc: "Converts to Base64/58 and back"
-                }
+                { name: "peko", icon: "🐰", title: "Peko", desc: "peko peko peko peko peko peko peko peko peko peko peko peko peko peko peko peko" },
+                { name: "json_validator", icon: "🗄️", title: "Json-Beautifier", desc: "Formats/validates JSON" },
+                { name: "image-converter", icon: "🖼️", title: "Image Converter", desc: "Converts images to different formats and sizes" },
+                { name: "btc_generator", icon: "💰", title: "BTC Wallet Generator", desc: "Creates BTC addresses and keys. Works offline. Updates on page reload" },
+                { name: "colors", icon: "🎨", title: "Colors", desc: "Palettes, codes, everything for working with color" },
+                { name: "twitch_iframe", icon: "📺", title: "Twitch Iframe", desc: "Purple jackal download wallpapers" },
+                { name: "qr_generator_reader", icon: "📱", title: "QR Codes", desc: "Generates and reads QR codes" },
+                { name: "audio_converter", icon: "🎵", title: "Audio Converter", desc: "Converts audio files to different formats and bitrates" },
+                { name: "hex-dec-converter", icon: "🔢", title: "Hex-Dec Converter", desc: "Converts numbers between hexadecimal and decimal formats" },
+                { name: "base-utf-converter", icon: "🔤", title: "Base64/58 Converter", desc: "Converts to Base64/58 and back" }
+            ]
+        },
+        el: {
+            title: "Ο Ιστός πριν γίνει σκατά",
+            subtitle: "Απλά εργαλεία χωρίς μαλακίες",
+            description: `
+                <p>Αυτή η σελίδα δεν χρησιμοποιεί cookies, δεν συλλέγει αναλύσεις και δεν εμφανίζει διαφημίσεις.</p>
+                <p>Είναι απλά ένα σύνολο εργαλείων που έκαναν τη ζωή μου ευκολότερη και ίσως βοηθήσουν και εσάς.</p>
+            `,
+            footer: "Φτιαγμένο πρόχειρα με τη βοήθεια του Claude και του ChatGPT. <a href=\"https://github.com/gen1nya/js-tools\">Πηγαίος κώδικας</a>",
+            tools: [
+                { name: "peko", icon: "🐰", title: "Πέκο", desc: "πέκο πέκο πέκο..." },
+                { name: "json_validator", icon: "🗄️", title: "Διαμορφωτής JSON", desc: "Μορφοποιεί/επικυρώνει JSON" },
+                { name: "image-converter", icon: "🖼️", title: "Μετατροπέας εικόνων", desc: "Μετατρέπει εικόνες σε διαφορετικές μορφές και μεγέθη" },
+                { name: "btc_generator", icon: "💰", title: "Γεννήτρια πορτοφολιών BTC", desc: "Δημιουργεί διευθύνσεις και κλειδιά BTC. Λειτουργεί offline. Ενημερώνεται με την ανανέωση της σελίδας" },
+                { name: "colors", icon: "🎨", title: "Χρώματα", desc: "Παλέτες, κωδικοί, όλα για εργασία με το χρώμα" },
+                { name: "twitch_iframe", icon: "📺", title: "Iframe Twitch", desc: "Μωβ τσακάλι λήψη ταπετσαριών" },
+                { name: "qr_generator_reader", icon: "📱", title: "QR κώδικες", desc: "Δημιουργεί και διαβάζει κωδικούς QR" },
+                { name: "audio_converter", icon: "🎵", title: "Μετατροπέας ήχου", desc: "Μετατρέπει αρχεία ήχου σε διαφορετικές μορφές και bitrates" },
+                { name: "hex-dec-converter", icon: "🔢", title: "Μετατροπέας Hex-Dec", desc: "Μετατρέπει αριθμούς μεταξύ δεκαεξαδικού και δεκαδικού" },
+                { name: "base-utf-converter", icon: "🔤", title: "Μετατροπέας Base64/58", desc: "Μετατρέπει σε Base64/58 και πίσω" }
             ]
         }
     };
 
-    let currentLang = 'ru';
+    let currentLang = localStorage.getItem("lang") || "ru";
 
-    function switchLanguage(lang) {
+    function switchLanguage(lang, targetBtn = null) {
         currentLang = lang;
+        localStorage.setItem("lang", lang);
 
-        // Обновляем кнопки языка
-        document.querySelectorAll('.lang-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
+        document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+        if (targetBtn) targetBtn.classList.add('active');
 
-        // Обновляем тексты
         const texts = translations[lang];
         document.querySelectorAll('[data-text]').forEach(el => {
             const key = el.getAttribute('data-text');
-            if (texts[key]) {
-                el.innerHTML = texts[key];
-            }
+            if (texts[key]) el.innerHTML = texts[key];
         });
 
-        // Обновляем инструменты
         renderTools(texts.tools);
-
-        // Обновляем язык документа
         document.documentElement.lang = lang;
     }
 
     function renderTools(tools) {
         const grid = document.getElementById('tools-grid');
         grid.innerHTML = tools.map(tool => `
-                <a href="tools/${tool.name}.html" class="tool-card">
-                    <span class="tool-icon">${tool.icon}</span>
-                    <div class="tool-title">${tool.title}</div>
-                    <div class="tool-desc">${tool.desc}</div>
-                </a>
-            `).join('');
+            <a href="tools/${tool.name}.html" class="tool-card">
+                <span class="tool-icon">${tool.icon}</span>
+                <div class="tool-title">${tool.title}</div>
+                <div class="tool-desc">${tool.desc}</div>
+            </a>
+        `).join('');
     }
 
-    // Инициализация
-    document.addEventListener('DOMContentLoaded', function() {
-        renderTools(translations[currentLang].tools);
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.getAttribute("data-lang") === currentLang) btn.classList.add('active');
+            btn.addEventListener("click", e => switchLanguage(btn.getAttribute("data-lang"), e.target));
+        });
+
+        switchLanguage(currentLang);
     });
 </script>
 </body>
