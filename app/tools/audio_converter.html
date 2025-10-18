@@ -111,14 +111,14 @@
 /**
  * === Версии и пути ===
  * Рабочие пары версий:
- *  - @ffmpeg/ffmpeg@0.11.6  (ffmpeg.min.js)
- *  - @ffmpeg/core-st@0.11.1 (ffmpeg-core.js/.wasm/.worker.js)
- * Эти версии действительно существуют на unpkg/jsDelivr.
+ *  - @ffmpeg/ffmpeg@0.11.6  (обёртка)
+ *  - @ffmpeg/core@0.11.1    (ядро: ffmpeg-core.js/.wasm/.worker.js)
+ Эти версии действительно существуют на unpkg/jsDelivr и совместимы между собой.
  */
 const CDN_BASES = [
-  'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist',
-  'https://cdn.jsdelivr.net/npm/@ffmpeg/core-st@0.11.1/dist',
-  'https://fastly.jsdelivr.net/npm/@ffmpeg/core-st@0.11.1/dist'
+  'https://unpkg.com/@ffmpeg/core@0.11.1/dist',
+  'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.1/dist',
+  'https://fastly.jsdelivr.net/npm/@ffmpeg/core@0.11.1/dist'
 ];
 let FFMPEG_CORE_BASE = '';// если нужно — выставьте, напр.: '/ffmpeg'
 
