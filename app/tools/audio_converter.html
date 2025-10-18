@@ -5,341 +5,98 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Конвертер аудио (FFmpeg.wasm)</title>
   <style>
-    :root{--bg:#0f1220;--panel:#171a2b;--accent:#6aa2ff;--text:#e9ecf1;--muted:#9aa4bf;--border:#22263a;--ok:#2ecc71;--warn:#f1c40f;--err:#e74c3c}
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:radial-gradient(1200px 800px at 10% 0%,#16213e 0%,#0f1220 50%,#0f1220 100%);color:var(--text)}
-    .container{max-width:1100px;margin:24px auto;padding:0 16px}
-    h1{font-size:26px;margin:0 0 8px}
-    p.lead{color:var(--muted);margin-top:0}
-    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}
-    .card{background:rgba(255,255,255,0.02);backdrop-filter: blur(6px);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    .drop{border:2px dashed #2b3153;border-radius:16px;padding:20px;text-align:center;color:var(--muted);transition:.2s ease}
-    .drop.dragover{border-color:var(--accent);color:var(--text);background:rgba(106,162,255,.06)}
-    .row{display:flex;gap:12px;flex-wrap:wrap}
-    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-    input[type="text"], input[type="number"], select, textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#0f1428;color:var(--text);outline:none}
-    textarea{min-height:120px;resize:vertical}
-    .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:linear-gradient(180deg,#1a2144,#141a33);padding:10px 14px;color:#fff;border-radius:12px;cursor:pointer}
-    .btn[disabled]{opacity:.6;cursor:not-allowed}
-    .btn-primary{border-color:#3a4c82;background:linear-gradient(180deg,#2d3c72,#1c2750)}
-    .btn-ghost{background:transparent}
-    .hint{font-size:12px;color:var(--muted)}
-    .progress{height:10px;border-radius:999px;background:#141a33;border:1px solid var(--border);overflow:hidden}
-    .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#9fd0ff)}
-    .file-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);padding:8px 10px;border-radius:999px;background:#131935}
-    .tag{display:inline-block;padding:2px 8px;border-radius:999px;background:#10162b;border:1px solid var(--border);color:var(--muted);font-size:12px}
-    .footer{margin-top:12px;color:var(--muted);font-size:12px}
-    .kv{display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:center}
-    .chips{display:flex;gap:8px;flex-wrap:wrap}
-    .output{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .hidden{display:none}
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    :root{--bg:#0f1220;--panel:#171a2b;--accent:#6aa2ff;--text:#e9ecf1;--muted:#9aa4bf;--border:#22263a}
+    body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui, sans-serif}
+    .container{max-width:900px;margin:20px auto;padding:16px}
+    .card{background:var(--panel);padding:20px;border-radius:12px;border:1px solid var(--border)}
+    .drop{border:2px dashed var(--accent);padding:30px;text-align:center;border-radius:12px;margin-bottom:20px}
+    .drop.dragover{background:#1c2142}
+    input,select,button{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:#10142a;color:var(--text)}
+    button{cursor:pointer}
+    .progress{height:10px;background:#10142a;border-radius:6px;margin-top:10px;overflow:hidden}
+    .bar{height:100%;background:var(--accent);width:0%}
+    textarea{width:100%;height:150px;margin-top:10px;background:#10142a;color:var(--text);border-radius:8px;border:1px solid var(--border)}
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Конвертер аудио на чистом JS</h1>
-    <p class="lead">Работает в браузере с помощью <span class="tag">FFmpeg.wasm</span>. Файлы никуда не отправляются — всё локально.</p>
-
-    <div class="grid">
-      <!-- LEFT: Input & Controls -->
-      <div class="card">
-        <div id="drop" class="drop" tabindex="0" role="button" aria-label="Перетащите аудиофайл сюда">
-          <strong>Перетащите аудиофайл</strong>
-          <div class="hint">или
-            <button id="pickBtn" class="btn btn-ghost" type="button">выберите файл…</button>
-          </div>
-          <input id="fileInput" type="file" accept="audio/*,video/mp4" class="hidden" />
-        </div>
-        <div id="picked" class="footer hidden"></div>
-        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0" />
-
-        <div class="row">
-          <div style="flex:1 1 160px">
-            <label for="format">Выходной формат</label>
-            <select id="format">
-              <option value="mp3">MP3 (.mp3)</option>
-              <option value="mp4">MP4 (аудио, .mp4)</option>
-              <option value="aac">AAC (.aac)</option>
-              <option value="ogg">OGG Vorbis (.ogg)</option>
-              <option value="wav">WAV PCM (.wav)</option>
-            </select>
-          </div>
-          <div style="flex:1 1 140px">
-            <label for="bitrate">Битрейт (кбит/с)</label>
-            <input id="bitrate" type="number" min="16" max="512" step="1" value="192" />
-          </div>
-          <div style="flex:1 1 140px">
-            <label for="samplerate">Частота (Гц)</label>
-            <input id="samplerate" type="number" min="8000" max="192000" step="1000" value="44100" />
-          </div>
-          <div style="flex:1 1 140px">
-            <label for="channels">Каналы</label>
-            <select id="channels">
-              <option value="2">Стерео (2)</option>
-              <option value="1">Моно (1)</option>
-            </select>
-          </div>
-        </div>
-
-        <details style="margin-top:12px">
-          <summary>Доп. настройки кодека</summary>
-          <div class="row" style="margin-top:8px">
-            <div style="flex:1 1 220px">
-              <label for="vbr">Режим VBR (если поддерживается)</label>
-              <select id="vbr">
-                <option value="off">Выкл.</option>
-                <option value="on">Вкл.</option>
-              </select>
-            </div>
-            <div style="flex:1 1 220px">
-              <label for="extra">Свои аргументы FFmpeg</label>
-              <input id="extra" type="text" placeholder="Напр.: -af loudnorm=I=-16:LRA=11" />
-              <div class="hint">Будут добавлены в конец командной строки</div>
-            </div>
-          </div>
-        </details>
-
-        <div class="row" style="margin-top:16px;align-items:center">
-          <button id="convertBtn" class="btn btn-primary">▶ Конвертировать</button>
-          <button id="clearBtn" class="btn" type="button">Очистить</button>
-          <span id="coreStatus" class="hint">Ядро FFmpeg: не загружено</span>
-        </div>
-
-        <div style="margin-top:12px">
-          <div class="progress"><div id="bar" class="bar"></div></div>
-          <div class="row" style="justify-content:space-between;margin-top:6px">
-            <span id="progressText" class="hint">0%</span>
-            <span id="eta" class="hint"></span>
-          </div>
-        </div>
+    <h1>Конвертер аудио (FFmpeg.wasm)</h1>
+    <div class="card">
+      <div id="drop" class="drop">Перетащите файл или <input id="fileInput" type="file" accept="audio/*,video/mp4"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <label>Формат
+          <select id="format">
+            <option value="mp3">mp3</option>
+            <option value="aac">aac</option>
+            <option value="ogg">ogg</option>
+            <option value="wav">wav</option>
+            <option value="mp4">mp4</option>
+          </select>
+        </label>
+        <label>Битрейт <input id="bitrate" type="number" value="192"></label>
+        <label>Частота <input id="samplerate" type="number" value="44100"></label>
+        <label>Каналы
+          <select id="channels"><option value="2">2</option><option value="1">1</option></select>
+        </label>
+        <button id="convert">Конвертировать</button>
       </div>
-
-      <!-- RIGHT: Logs & Result -->
-      <div class="card">
-        <div class="row output">
-          <div>
-            <div style="font-weight:600;margin-bottom:6px">Результат</div>
-            <div id="resultInfo" class="hint">Пока пусто</div>
-          </div>
-          <a id="download" class="btn hidden" download>⬇ Скачать</a>
-        </div>
-        <hr style="border:none;border-top:1px solid var(--border);margin:16px 0" />
-        <label for="log">Лог FFmpeg</label>
-        <textarea id="log" class="mono" spellcheck="false" placeholder="Здесь появится лог выполнения…"></textarea>
-      </div>
-    </div>
-
-    <div class="footer">
-      Поддерживаемые форматы вывода: MP3, MP4 (аудио), AAC, OGG (Vorbis), WAV. Некоторые кодеки могут отсутствовать в сборке FFmpeg.wasm — в таком случае будет показана ошибка из лога.
+      <div class="progress"><div id="bar" class="bar"></div></div>
+      <p id="status">Готово к работе</p>
+      <a id="download" style="display:none" class="btn">Скачать</a>
+      <textarea id="log" readonly></textarea>
     </div>
   </div>
-
   <script type="module">
-    // ⚙️ FFmpeg.wasm: подключаем как ESM с CDN
-    import { createFFmpeg, fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js';
+    import { FFmpeg, fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js';
+    const coreURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js';
 
+    const ffmpeg = new FFmpeg();
     const ui = {
       drop: document.getElementById('drop'),
       fileInput: document.getElementById('fileInput'),
-      pickBtn: document.getElementById('pickBtn'),
-      picked: document.getElementById('picked'),
       format: document.getElementById('format'),
       bitrate: document.getElementById('bitrate'),
       samplerate: document.getElementById('samplerate'),
       channels: document.getElementById('channels'),
-      vbr: document.getElementById('vbr'),
-      extra: document.getElementById('extra'),
-      convertBtn: document.getElementById('convertBtn'),
-      clearBtn: document.getElementById('clearBtn'),
-      log: document.getElementById('log'),
+      convert: document.getElementById('convert'),
       bar: document.getElementById('bar'),
-      progressText: document.getElementById('progressText'),
-      eta: document.getElementById('eta'),
-      download: document.getElementById('download'),
-      resultInfo: document.getElementById('resultInfo'),
-      coreStatus: document.getElementById('coreStatus'),
+      log: document.getElementById('log'),
+      status: document.getElementById('status'),
+      download: document.getElementById('download')
     };
 
-    let inputFile = null;
-    let ffmpegLoaded = false;
-    let lastProgressTime = null;
+    let inputFile;
 
-    const ffmpeg = createFFmpeg({
-      log: true,
-      // Можно указать corePath явно (обычно не требуется, unpkg подхватит автоматически)
-      corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/ffmpeg-core.js',
-      progress: ({ ratio }) => {
-        const pct = Math.min(100, Math.max(0, Math.round(ratio * 100)));
-        ui.bar.style.width = pct + '%';
-        ui.progressText.textContent = pct + '%';
-        const now = performance.now();
-        if (lastProgressTime) {
-          const dt = (now - lastProgressTime) / 1000;
-          if (dt > 0 && ratio > 0) {
-            const eta = (1 - ratio) * (now - startTime) / ratio / 1000;
-            ui.eta.textContent = isFinite(eta) ? `≈ ${eta.toFixed(1)} c до готовности` : '';
-          }
-        }
-      }
-    });
+    ui.drop.addEventListener('dragover', e=>{e.preventDefault();ui.drop.classList.add('dragover')});
+    ui.drop.addEventListener('dragleave', ()=>ui.drop.classList.remove('dragover'));
+    ui.drop.addEventListener('drop', e=>{e.preventDefault();ui.drop.classList.remove('dragover');setFile(e.dataTransfer.files[0]);});
+    ui.fileInput.addEventListener('change', e=>setFile(e.target.files[0]));
 
-    function logLine(msg){
-      ui.log.value += msg + "\n";
-      ui.log.scrollTop = ui.log.scrollHeight;
-    }
+    function setFile(f){inputFile=f;ui.status.textContent='Выбран файл: '+f.name;}
 
-    // Drag & drop handlers
-    ['dragenter','dragover'].forEach(ev => ui.drop.addEventListener(ev, e => {
-      e.preventDefault(); e.stopPropagation(); ui.drop.classList.add('dragover');
-    }));
-    ['dragleave','drop'].forEach(ev => ui.drop.addEventListener(ev, e => {
-      e.preventDefault(); e.stopPropagation(); ui.drop.classList.remove('dragover');
-    }));
-    ui.drop.addEventListener('drop', async (e)=>{
-      const f = e.dataTransfer.files?.[0];
-      if (f) setInputFile(f);
-    });
+    ffmpeg.on('log', ({message})=>{ui.log.value+=message+'\n';ui.log.scrollTop=ui.log.scrollHeight;});
+    ffmpeg.on('progress', ({progress})=>{const p=Math.round(progress*100);ui.bar.style.width=p+'%';ui.status.textContent='Прогресс: '+p+'%';});
 
-    ui.pickBtn.addEventListener('click', ()=> ui.fileInput.click());
-    ui.fileInput.addEventListener('change', ()=>{
-      const f = ui.fileInput.files?.[0];
-      if (f) setInputFile(f);
-    });
+    ui.convert.addEventListener('click', async()=>{
+      if(!inputFile){alert('Выберите файл');return;}
+      ui.status.textContent='Загрузка FFmpeg...';
+      await ffmpeg.load({coreURL});
+      ui.status.textContent='Загружено, конвертация...';
 
-    ui.clearBtn.addEventListener('click', ()=>{
-      inputFile = null; ui.fileInput.value = '';
-      ui.picked.classList.add('hidden');
-      ui.download.classList.add('hidden');
-      ui.resultInfo.textContent = 'Пока пусто';
-      ui.log.value='';
-      ui.bar.style.width='0%'; ui.progressText.textContent='0%'; ui.eta.textContent='';
-    });
+      const inName='input.'+inputFile.name.split('.').pop();
+      await ffmpeg.writeFile(inName, await fetchFile(inputFile));
 
-    function bytesPretty(n){
-      if (!Number.isFinite(n)) return '-';
-      const u = ['Б','КБ','МБ','ГБ']; let i=0; let v=n;
-      while(v>=1024 && i<u.length-1){v/=1024;i++}
-      return v.toFixed(v<10?2:1)+' '+u[i];
-    }
+      const outName='output.'+ui.format.value;
+      const args=['-i',inName,'-b:a',ui.bitrate.value+'k','-ar',ui.samplerate.value,'-ac',ui.channels.value,outName];
+      await ffmpeg.exec(args);
 
-    function setInputFile(f){
-      inputFile = f;
-      const pill = `<span class="file-pill"><span>📄</span><span class="mono">${f.name}</span><span class="tag">${bytesPretty(f.size)}</span></span>`;
-      ui.picked.innerHTML = pill;
-      ui.picked.classList.remove('hidden');
-      ui.resultInfo.textContent = 'Готов к конвертации';
-    }
-
-    let startTime = 0;
-
-    ui.convertBtn.addEventListener('click', async ()=>{
-      if (!inputFile){ alert('Сначала выберите файл'); return; }
-      try{
-        ui.convertBtn.disabled = true;
-        ui.download.classList.add('hidden');
-        ui.resultInfo.textContent = 'Обработка…';
-        ui.log.value='';
-        ui.bar.style.width='0%'; ui.progressText.textContent='0%'; ui.eta.textContent='';
-
-        if (!ffmpegLoaded){
-          logLine('Загрузка ядра FFmpeg…');
-          await ffmpeg.load();
-          ffmpegLoaded = true;
-          ui.coreStatus.textContent = 'Ядро FFmpeg: загружено';
-          logLine('FFmpeg загружен.');
-        }
-
-        // Пишем входной файл во внутреннюю FS
-        const inName = 'input_' + Date.now() + '.' + (inputFile.name.split('.').pop() || 'dat');
-        ffmpeg.FS('writeFile', inName, await fetchFile(inputFile));
-
-        // Формируем имя и параметры
-        const fmt = ui.format.value;
-        const baseOut = inputFile.name.replace(/\.[^.]+$/, '') || 'output';
-        const outName = `${baseOut}.${fmt}`;
-        const br = parseInt(ui.bitrate.value, 10) || 192;
-        const sr = parseInt(ui.samplerate.value, 10) || 44100;
-        const ch = parseInt(ui.channels.value, 10) || 2;
-        const useVbr = ui.vbr.value === 'on';
-        const extra = ui.extra.value.trim();
-
-        // Маппинг кодеков по форматам (могут различаться в доступности)
-        const codecArgsByFormat = {
-          mp3: ['-c:a','libmp3lame'],      // Альтернативы на случай ошибки: ['-c:a','libshine'] или ['-c:a','mp3']
-          aac: ['-c:a','aac'],
-          mp4: ['-vn','-c:a','aac','-f','mp4'], // Аудио-только MP4
-          ogg: ['-c:a','libvorbis'],
-          wav: ['-c:a','pcm_s16le']
-        };
-
-        const args = ['-i', inName, '-ar', String(sr), '-ac', String(ch)];
-
-        if (fmt !== 'wav'){
-          if (useVbr) {
-            // Общая стратегия VBR. Для AAC/MP3 используются флаги -q:a; для Vorbis — тоже -q:a (0..10)
-            const q = Math.max(0, Math.min(9, Math.round((br-64)/32))); // прим. эвристика
-            args.push('-q:a', String(q));
-          } else {
-            args.push('-b:a', `${br}k`);
-          }
-        }
-
-        // Добавим кодек- и контейнер-специфичные аргументы
-        args.push(...(codecArgsByFormat[fmt] || []));
-
-        if (extra) {
-          // Очень простое разбиение на токены по пробелам (без кавычек)
-          args.push(...extra.split(/\s+/).filter(Boolean));
-        }
-
-        args.push(outName);
-
-        logLine('Команда: ffmpeg ' + args.map(a=>/\s/.test(a)?`"${a}"`:a).join(' '));
-
-        startTime = performance.now();
-        await ffmpeg.run(...args);
-
-        const data = ffmpeg.FS('readFile', outName);
-        const blob = new Blob([data.buffer], { type: mimeByExt(fmt) });
-        const url = URL.createObjectURL(blob);
-
-        ui.download.href = url;
-        ui.download.download = outName;
-        ui.download.classList.remove('hidden');
-        const took = (performance.now() - startTime)/1000;
-        ui.resultInfo.innerHTML = `Готово за <strong>${took.toFixed(1)} с</strong>. Файл: <span class="mono">${outName}</span> <span class="tag">${bytesPretty(data.length)}</span>`;
-        logLine('✔ Конвертация завершена.');
-      }catch(err){
-        console.error(err);
-        logLine('✖ Ошибка: ' + (err?.message || err));
-        if (/libmp3lame|libshine|mp3 encoder/i.test(err?.message||'')){
-          logLine('Подсказка: сборка FFmpeg.wasm может не содержать MP3-энкодер. Попробуйте другой формат (AAC/OGG/WAV) или укажите иной кодек в "Свои аргументы".');
-        }
-        ui.resultInfo.textContent = 'Ошибка при конвертации — подробности в логе.';
-      } finally {
-        ui.convertBtn.disabled = false;
-        // Очистим temp-файлы
-        try{ ffmpeg.FS('unlink', '/input'); }catch{}
-      }
-    });
-
-    function mimeByExt(ext){
-      switch(ext){
-        case 'mp3': return 'audio/mpeg';
-        case 'aac': return 'audio/aac';
-        case 'mp4': return 'audio/mp4';
-        case 'ogg': return 'audio/ogg';
-        case 'wav': return 'audio/wav';
-        default: return 'application/octet-stream';
-      }
-    }
-
-    // Лог событий FFmpeg
-    ffmpeg.setLogger(({ type, message }) => {
-      const prefix = type === 'fferr' ? '[ERR]' : '[LOG]';
-      logLine(prefix + ' ' + message);
+      const data=await ffmpeg.readFile(outName);
+      const blob=new Blob([data.buffer],{type:'audio/'+ui.format.value});
+      const url=URL.createObjectURL(blob);
+      ui.download.href=url;
+      ui.download.download=outName;
+      ui.download.style.display='inline-block';
+      ui.status.textContent='Готово: '+outName;
     });
   </script>
 </body>
