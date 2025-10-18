@@ -112,8 +112,16 @@
   <script type="module">
     
     import { FFmpeg } from './libs/ffmpeg/index.js';
+    const { createFFmpeg } = FFmpeg;
+      const ffmpeg = createFFmpeg({
+        corePath: '/tools/libs/ffmpeg/ffmpeg-core.js',
+        workerPath: '/tools/libs/ffmpeg/worker.js',
+        workerOptions: {
+          type: 'module'
+        },
+        log: true
+      });
 
-    const ffmpeg = new FFmpeg();
     const ui = {
       drop: document.getElementById('drop'),
       fileInput: document.getElementById('fileInput'),
@@ -171,15 +179,7 @@
       }
 
       ui.status.textContent = 'Загрузка FFmpeg...';
-    
-      
-      const base = `${window.location.origin}/tools/libs/ffmpeg`;
-      await ffmpeg.load({
-        coreURL: `${base}/ffmpeg-core.js`,
-        wasmURL: `${base}/ffmpeg-core.wasm`,
-        workerURL: `${base}/worker.js`,
-      });
-
+  
       ui.status.textContent = 'Конвертация...';
       const inName = 'input.' + inputFile.name.split('.').pop();
       const outName = 'output.' + ui.format.value;
