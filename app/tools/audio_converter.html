@@ -47,8 +47,14 @@
     </div>
   </div>
   <script type="module">
-    import { FFmpeg, fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js';
+    import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js';
     const coreURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js';
+
+    async function toUint8Array(file){
+      if (file.arrayBuffer) return new Uint8Array(await file.arrayBuffer());
+      const res = await fetch(file);
+      return new Uint8Array(await res.arrayBuffer());
+    }
 
     const ffmpeg = new FFmpeg();
     const ui = {
@@ -84,14 +90,15 @@
       ui.status.textContent='Загружено, конвертация...';
 
       const inName='input.'+inputFile.name.split('.').pop();
-      await ffmpeg.writeFile(inName, await fetchFile(inputFile));
+      await ffmpeg.writeFile(inName, await toUint8Array(inputFile));
 
       const outName='output.'+ui.format.value;
       const args=['-i',inName,'-b:a',ui.bitrate.value+'k','-ar',ui.samplerate.value,'-ac',ui.channels.value,outName];
       await ffmpeg.exec(args);
 
       const data=await ffmpeg.readFile(outName);
-      const blob=new Blob([data.buffer],{type:'audio/'+ui.format.value});
+      const mimeByFmt={mp3:'audio/mpeg',aac:'audio/aac',ogg:'audio/ogg',wav:'audio/wav',mp4:'audio/mp4'};
+      const blob=new Blob([data.buffer],{type:mimeByFmt[ui.format.value]||'application/octet-stream'});
       const url=URL.createObjectURL(blob);
       ui.download.href=url;
       ui.download.download=outName;
