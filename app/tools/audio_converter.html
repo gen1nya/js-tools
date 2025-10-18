@@ -705,18 +705,22 @@
                 try {
                     const { createFFmpeg, fetchFile } = FFmpeg;
                     
-                    // Use single-threaded version to avoid SharedArrayBuffer requirement
+                    // Use single-threaded version matching the library version
                     this.ffmpeg = createFFmpeg({
                         log: true,
+                        mainName: 'main',
                         corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
                         progress: ({ ratio }) => {
                             if (ratio > 0 && ratio < 1) {
-                                console.log('[FFmpeg Progress]', `${(ratio * 100).toFixed(1)}%`);
+                                const percent = Math.min(95, 40 + Math.floor(ratio * 50));
+                                this.updateProgress(percent, `Конвертация FFmpeg... ${(ratio * 100).toFixed(0)}%`);
                             }
                         }
                     });
 
+                    console.log('[FFmpeg] Начало загрузки...');
                     await this.ffmpeg.load();
+                    console.log('[FFmpeg] Загрузка завершена успешно');
 
                     this.ffmpegLoaded = true;
                     this.ffmpegLoading = false;
@@ -759,6 +763,7 @@
                     const outputFileName = 'output.' + format;
 
                     console.log('[FFmpeg] Начало конвертации:', inputFileName, '→', outputFileName);
+                    console.log('[FFmpeg] Параметры: битрейт=', bitrate, 'sampleRate=', sampleRate, 'каналы=', channels);
 
                     // Write input file to FFmpeg virtual filesystem
                     this.ffmpeg.FS('writeFile', inputFileName, await fetchFile(this.currentFile));
@@ -766,7 +771,7 @@
 
                     this.updateProgress(40, 'Конвертация через FFmpeg...');
 
-                    // Build FFmpeg command arguments
+                    // Build FFmpeg command arguments (for ffmpeg.run)
                     const args = ['-i', inputFileName];
 
                     // Audio codec settings
@@ -787,11 +792,16 @@
                     // Output file
                     args.push(outputFileName);
 
-                    console.log('[FFmpeg] Команда:', args.join(' '));
+                    console.log('[FFmpeg] Команда: ffmpeg', args.join(' '));
 
-                    // Run FFmpeg
-                    await this.ffmpeg.run(...args);
-                    console.log('[FFmpeg] Конвертация завершена');
+                    // Run FFmpeg with timeout protection
+                    const runPromise = this.ffmpeg.run(...args);
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Превышено время ожидания (120 сек)')), 120000);
+                    });
+
+                    await Promise.race([runPromise, timeoutPromise]);
+                    console.log('[FFmpeg] Конвертация завершена успешно');
 
                     this.updateProgress(90, 'Получение результата...');
 
@@ -815,7 +825,14 @@
 
                     return new Blob([outputData.buffer], { type: mimeTypes[format] });
                 } catch (error) {
-                    console.error('[FFmpeg] Ошибка:', error);
+                    console.error('[FFmpeg] Ошибка конвертации:', error);
+                    // Try to clean up on error
+                    try {
+                        const files = this.ffmpeg.FS('readdir', '/');
+                        console.log('[FFmpeg] Файлы в системе:', files);
+                    } catch (e) {
+                        console.warn('[FFmpeg] Не удалось прочитать директорию');
+                    }
                     throw new Error('FFmpeg ошибка: ' + error.message);
                 }
             }
