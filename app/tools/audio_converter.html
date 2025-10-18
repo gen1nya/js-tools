@@ -708,7 +708,7 @@
                     // Use single-threaded version to avoid SharedArrayBuffer requirement
                     this.ffmpeg = createFFmpeg({
                         log: true,
-                        corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
+                        corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.6/dist/ffmpeg-core.js',
                         progress: ({ ratio }) => {
                             if (ratio > 0 && ratio < 1) {
                                 console.log('[FFmpeg Progress]', `${(ratio * 100).toFixed(1)}%`);
@@ -767,7 +767,7 @@
                     this.updateProgress(40, 'Конвертация через FFmpeg...');
 
                     // Build FFmpeg command arguments
-                    const args = ['-i', inputFileName];
+                    const args = ['-y', '-i', inputFileName];
 
                     // Audio codec settings
                     if (format === 'mp3') {
@@ -813,7 +813,7 @@
                         'flac': 'audio/flac'
                     };
 
-                    return new Blob([outputData.buffer], { type: mimeTypes[format] });
+                    return new Blob([outputData], { type: mimeTypes[format] });
                 } catch (error) {
                     console.error('[FFmpeg] Ошибка:', error);
                     throw new Error('FFmpeg ошибка: ' + error.message);
