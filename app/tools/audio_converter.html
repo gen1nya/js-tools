@@ -173,11 +173,11 @@
       ui.status.textContent = 'Загрузка FFmpeg...';
     
       
-      const base = './libs/ffmpeg';
+      const base = `${window.location.origin}/tools/libs/ffmpeg`;
       await ffmpeg.load({
-        coreURL: 'ffmpeg-core.js',
-        wasmURL: 'ffmpeg-core.wasm',
-        workerURL: 'worker.js',
+        coreURL: `${base}/ffmpeg-core.js`,
+        wasmURL: `${base}/ffmpeg-core.wasm`,
+        workerURL: `${base}/worker.js`,
       });
 
       ui.status.textContent = 'Конвертация...';
