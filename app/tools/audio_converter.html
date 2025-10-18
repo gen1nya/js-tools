@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Конвертер аудиоформатов</title>
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
     <style>
         * {
             margin: 0;
@@ -688,6 +688,10 @@
             }
 
             async loadFFmpeg() {
+                if (this.isFileProtocol) {
+                    throw new Error('FFmpeg не работает при открытии через file://. Запустите локальный веб-сервер или используйте WebM/MP4 форматы.');
+                }
+
                 if (this.ffmpegLoaded) return true;
                 if (this.ffmpegLoading) {
                     while (this.ffmpegLoading) {
@@ -697,7 +701,7 @@
                 }
 
                 this.ffmpegLoading = true;
-                this.showFFmpegStatus('Загрузка FFmpeg библиотеки (~31 МБ)...', true);
+                this.showFFmpegLoadingStatus('Загрузка FFmpeg библиотеки (~31 МБ)...', true);
 
                 try {
                     const { FFmpeg } = FFmpegWASM;
@@ -713,7 +717,7 @@
                         console.log('[FFmpeg Progress]', `${(progress * 100).toFixed(1)}%`, `Time: ${time}`);
                     });
 
-                    const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+                    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
                     
                     await this.ffmpeg.load({
                         coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
@@ -722,7 +726,7 @@
 
                     this.ffmpegLoaded = true;
                     this.ffmpegLoading = false;
-                    this.showFFmpegStatus('✅ FFmpeg готов к работе', false);
+                    this.showFFmpegLoadingStatus('✅ FFmpeg готов к работе', false);
                     setTimeout(() => {
                         this.ffmpegStatus.style.display = 'none';
                     }, 3000);
@@ -730,12 +734,14 @@
                     return true;
                 } catch (error) {
                     this.ffmpegLoading = false;
-                    this.showFFmpegStatus('❌ Ошибка загрузки FFmpeg: ' + error.message, false);
+                    this.ffmpegStatus.className = 'ffmpeg-status error';
+                    this.showFFmpegLoadingStatus('❌ Ошибка загрузки FFmpeg: ' + error.message, false);
                     throw error;
                 }
             }
 
-            showFFmpegStatus(message, loading) {
+            showFFmpegLoadingStatus(message, loading) {
+                this.ffmpegStatus.className = 'ffmpeg-status';
                 this.ffmpegStatus.style.display = 'block';
                 if (loading) {
                     this.ffmpegStatus.innerHTML = `
