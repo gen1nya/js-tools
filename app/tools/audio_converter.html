@@ -698,14 +698,15 @@
             <h3>📋 О форматах</h3>
             <p><strong>MP3:</strong> Самый популярный формат, работает на всех устройствах</p>
             <p><strong>FLAC:</strong> Сжатие без потерь качества, отлично для архивов</p>
-            <p><strong>OGG Opus:</strong> Открытый формат с отличным качеством и компрессией</p>
+            <p><strong>OGG Opus:</strong> Открытый формат с отличным качеством (автоматически 48 kHz)</p>
             <p><strong>WAV:</strong> Без сжатия, максимальное качество (нативная обработка)</p>
-            <p><strong>WebM Opus:</strong> Современный формат, лучший баланс качества и размера</p>
+            <p><strong>WebM Opus:</strong> Современный формат, лучший баланс качества и размера (48 kHz)</p>
             <p><strong>WebM Vorbis:</strong> Хорошее качество, широкая поддержка</p>
             <p><strong>MP4/AAC:</strong> Отличная совместимость с Apple устройствами</p>
             <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); font-size: 13px;">
                 <strong>ℹ️ Все форматы кроме WAV обрабатываются через FFmpeg</strong><br>
-                FFmpeg (~25 МБ) загружается один раз и кешируется в браузере для последующих использований.
+                FFmpeg (~25 МБ) загружается один раз и кешируется в браузере.<br>
+                <em>Примечание: Opus кодек (OGG/WebM Opus) оптимизирован для 48 kHz и автоматически конвертируется в эту частоту.</em>
             </p>
         </div>
     </div>
@@ -720,6 +721,7 @@
                 this.ffmpeg = null;
                 this.ffmpegLoaded = false;
                 this.ffmpegLoading = false;
+                this.ffmpegBusy = false; // Track if FFmpeg is currently processing
                 this.isFileProtocol = window.location.protocol === 'file:';
                 this.preloadFFmpeg = true; // Можно отключить для более быстрого старта
                 
@@ -1007,6 +1009,11 @@
                     throw new Error('FFmpeg не работает при открытии через file://. Запустите локальный веб-сервер или используйте формат WAV.');
                 }
 
+                // Wait if FFmpeg is busy
+                while (this.ffmpegBusy) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
                 if (this.ffmpegLoaded) return true;
                 if (this.ffmpegLoading) {
                     while (this.ffmpegLoading) {
@@ -1068,6 +1075,12 @@
             }
 
             async convertWithFFmpeg(format, bitrate, sampleRate, channels) {
+                // Check if FFmpeg is busy
+                if (this.ffmpegBusy) {
+                    throw new Error('FFmpeg занят. Дождитесь завершения текущей конвертации.');
+                }
+
+                this.ffmpegBusy = true;
                 this.updateProgress(20, 'Подготовка файла для FFmpeg...');
 
                 try {
@@ -1088,6 +1101,22 @@
                     console.log('[FFmpeg] Начало конвертации:', inputFileName, '→', outputFileName);
                     console.log('[FFmpeg] Параметры: формат=', format, 'битрейт=', bitrate, 'sampleRate=', sampleRate, 'каналы=', channels);
 
+                    // Clean up any existing files first
+                    try {
+                        const files = this.ffmpeg.FS('readdir', '/');
+                        for (const file of files) {
+                            if (file !== '.' && file !== '..' && file !== 'tmp') {
+                                try {
+                                    this.ffmpeg.FS('unlink', file);
+                                } catch (e) {
+                                    // Ignore errors for files that can't be deleted
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[FFmpeg] Не удалось очистить FS перед конвертацией');
+                    }
+
                     this.ffmpeg.FS('writeFile', inputFileName, await fetchFile(this.currentFile));
 
                     this.updateProgress(40, 'Конвертация через FFmpeg...');
@@ -1105,20 +1134,37 @@
                         args.push('-codec:a', 'libopus');
                         args.push('-b:a', bitrate + 'k');
                         args.push('-vbr', 'on');
+                        // Opus requires specific sample rates, force 48kHz
+                        const originalSampleRate = sampleRate;
+                        sampleRate = 48000;
+                        if (originalSampleRate !== 48000) {
+                            console.log('[FFmpeg] Opus требует 48 kHz, конвертация с', originalSampleRate, 'Hz');
+                        }
                     } else if (format === 'webm-opus') {
                         args.push('-codec:a', 'libopus');
                         args.push('-b:a', bitrate + 'k');
+                        // Opus requires specific sample rates, force 48kHz
+                        const originalSampleRate = sampleRate;
+                        sampleRate = 48000;
+                        if (originalSampleRate !== 48000) {
+                            console.log('[FFmpeg] Opus требует 48 kHz, конвертация с', originalSampleRate, 'Hz');
+                        }
                     } else if (format === 'webm-vorbis') {
                         args.push('-codec:a', 'libvorbis');
                         args.push('-b:a', bitrate + 'k');
                     } else if (format === 'mp4') {
                         args.push('-codec:a', 'aac');
                         args.push('-b:a', bitrate + 'k');
+                        args.push('-f', 'mp4'); // Explicitly set format
+                        args.push('-movflags', '+faststart'); // Optimize for streaming
                     }
 
                     // Sample rate and channels
                     args.push('-ar', sampleRate.toString());
                     args.push('-ac', channels.toString());
+                    
+                    // Remove video streams if any (audio only)
+                    args.push('-vn');
                     
                     // Output file
                     args.push(outputFileName);
@@ -1132,12 +1178,13 @@
                     const outputData = this.ffmpeg.FS('readFile', outputFileName);
                     console.log('[FFmpeg] Файл создан, размер:', outputData.length, 'байт');
 
-                    // Cleanup
+                    // Cleanup - remove both input and output files
                     try {
                         this.ffmpeg.FS('unlink', inputFileName);
                         this.ffmpeg.FS('unlink', outputFileName);
+                        console.log('[FFmpeg] Временные файлы удалены');
                     } catch (e) {
-                        console.warn('[FFmpeg] Не удалось удалить временные файлы');
+                        console.warn('[FFmpeg] Не удалось удалить временные файлы:', e);
                     }
 
                     // Determine MIME type
@@ -1153,7 +1200,27 @@
                     return new Blob([outputData.buffer], { type: mimeTypes[format] || 'audio/mpeg' });
                 } catch (error) {
                     console.error('[FFmpeg] Ошибка конвертации:', error);
+                    
+                    // Try to clean up on error
+                    try {
+                        const files = this.ffmpeg.FS('readdir', '/');
+                        console.log('[FFmpeg] Файлы в системе после ошибки:', files);
+                        for (const file of files) {
+                            if (file !== '.' && file !== '..' && file !== 'tmp') {
+                                try {
+                                    this.ffmpeg.FS('unlink', file);
+                                } catch (e) {
+                                    // Ignore
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[FFmpeg] Не удалось прочитать/очистить директорию после ошибки');
+                    }
+                    
                     throw new Error('FFmpeg ошибка: ' + error.message);
+                } finally {
+                    this.ffmpegBusy = false;
                 }
             }
 
@@ -1219,6 +1286,11 @@
                     return;
                 }
 
+                if (this.ffmpegBusy) {
+                    this.showError('Дождитесь завершения текущей конвертации');
+                    return;
+                }
+
                 this.convertBtn.disabled = true;
                 this.progressContainer.style.display = 'block';
                 this.result.style.display = 'none';
@@ -1269,6 +1341,7 @@
                     this.result.style.display = 'block';
 
                 } catch (error) {
+                    console.error('[Conversion Error]', error);
                     this.showError('Ошибка при конвертации: ' + error.message);
                 } finally {
                     this.convertBtn.disabled = false;
