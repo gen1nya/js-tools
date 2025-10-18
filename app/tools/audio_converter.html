@@ -3,26 +3,84 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Конвертер аудио (FFmpeg.wasm)</title>
+  <title>FFmpeg Audio Converter</title>
   <style>
-    :root{--bg:#0f1220;--panel:#171a2b;--accent:#6aa2ff;--text:#e9ecf1;--muted:#9aa4bf;--border:#22263a}
-    body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui, sans-serif}
-    .container{max-width:900px;margin:20px auto;padding:16px}
-    .card{background:var(--panel);padding:20px;border-radius:12px;border:1px solid var(--border)}
-    .drop{border:2px dashed var(--accent);padding:30px;text-align:center;border-radius:12px;margin-bottom:20px}
-    .drop.dragover{background:#1c2142}
-    input,select,button{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:#10142a;color:var(--text)}
-    button{cursor:pointer}
-    .progress{height:10px;background:#10142a;border-radius:6px;margin-top:10px;overflow:hidden}
-    .bar{height:100%;background:var(--accent);width:0%}
-    textarea{width:100%;height:150px;margin-top:10px;background:#10142a;color:var(--text);border-radius:8px;border:1px solid var(--border)}
+    :root {
+      --bg: #0f1220;
+      --panel: #171a2b;
+      --accent: #6aa2ff;
+      --text: #e9ecf1;
+      --border: #22263a;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, sans-serif;
+    }
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 16px;
+    }
+    .card {
+      background: var(--panel);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .drop {
+      border: 2px dashed var(--accent);
+      padding: 30px;
+      text-align: center;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .drop.dragover {
+      background: #1c2142;
+    }
+    input, select, button {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #10142a;
+      color: var(--text);
+    }
+    button {
+      cursor: pointer;
+    }
+    .progress {
+      height: 10px;
+      background: #10142a;
+      border-radius: 6px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .bar {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      margin-top: 10px;
+      background: #10142a;
+      color: var(--text);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Конвертер аудио (FFmpeg.wasm)</h1>
+    <h1>Конвертер аудио (FFmpeg.wasm v0.12+)</h1>
     <div class="card">
-      <div id="drop" class="drop">Перетащите файл или <input id="fileInput" type="file" accept="audio/*,video/mp4"></div>
+      <div id="drop" class="drop">
+        Перетащите файл или <input id="fileInput" type="file" accept="audio/*,video/mp4">
+      </div>
+
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
         <label>Формат
           <select id="format">
@@ -36,25 +94,26 @@
         <label>Битрейт <input id="bitrate" type="number" value="192"></label>
         <label>Частота <input id="samplerate" type="number" value="44100"></label>
         <label>Каналы
-          <select id="channels"><option value="2">2</option><option value="1">1</option></select>
+          <select id="channels">
+            <option value="2">2</option>
+            <option value="1">1</option>
+          </select>
         </label>
         <button id="convert">Конвертировать</button>
       </div>
+
       <div class="progress"><div id="bar" class="bar"></div></div>
       <p id="status">Готово к работе</p>
       <a id="download" style="display:none" class="btn">Скачать</a>
       <textarea id="log" readonly></textarea>
     </div>
   </div>
+
   <script type="module">
     import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js';
-    const coreURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js';
 
-    async function toUint8Array(file){
-      if (file.arrayBuffer) return new Uint8Array(await file.arrayBuffer());
-      const res = await fetch(file);
-      return new Uint8Array(await res.arrayBuffer());
-    }
+    // Используем твой домен с COOP/COEP — без CORS
+    const coreURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js';
 
     const ffmpeg = new FFmpeg();
     const ui = {
@@ -73,37 +132,81 @@
 
     let inputFile;
 
-    ui.drop.addEventListener('dragover', e=>{e.preventDefault();ui.drop.classList.add('dragover')});
-    ui.drop.addEventListener('dragleave', ()=>ui.drop.classList.remove('dragover'));
-    ui.drop.addEventListener('drop', e=>{e.preventDefault();ui.drop.classList.remove('dragover');setFile(e.dataTransfer.files[0]);});
-    ui.fileInput.addEventListener('change', e=>setFile(e.target.files[0]));
+    ui.drop.addEventListener('dragover', e => {
+      e.preventDefault();
+      ui.drop.classList.add('dragover');
+    });
+    ui.drop.addEventListener('dragleave', () => ui.drop.classList.remove('dragover'));
+    ui.drop.addEventListener('drop', e => {
+      e.preventDefault();
+      ui.drop.classList.remove('dragover');
+      setFile(e.dataTransfer.files[0]);
+    });
+    ui.fileInput.addEventListener('change', e => setFile(e.target.files[0]));
 
-    function setFile(f){inputFile=f;ui.status.textContent='Выбран файл: '+f.name;}
+    function setFile(f) {
+      inputFile = f;
+      ui.status.textContent = 'Выбран файл: ' + f.name;
+    }
 
-    ffmpeg.on('log', ({message})=>{ui.log.value+=message+'\n';ui.log.scrollTop=ui.log.scrollHeight;});
-    ffmpeg.on('progress', ({progress})=>{const p=Math.round(progress*100);ui.bar.style.width=p+'%';ui.status.textContent='Прогресс: '+p+'%';});
+    async function toUint8Array(file) {
+      if (file.arrayBuffer) return new Uint8Array(await file.arrayBuffer());
+      const res = await fetch(file);
+      return new Uint8Array(await res.arrayBuffer());
+    }
 
-    ui.convert.addEventListener('click', async()=>{
-      if(!inputFile){alert('Выберите файл');return;}
-      ui.status.textContent='Загрузка FFmpeg...';
-      await ffmpeg.load({coreURL});
-      ui.status.textContent='Загружено, конвертация...';
+    ffmpeg.on('log', ({ message }) => {
+      ui.log.value += message + '\\n';
+      ui.log.scrollTop = ui.log.scrollHeight;
+    });
 
-      const inName='input.'+inputFile.name.split('.').pop();
+    ffmpeg.on('progress', ({ progress }) => {
+      const p = Math.round(progress * 100);
+      ui.bar.style.width = p + '%';
+      ui.status.textContent = 'Прогресс: ' + p + '%';
+    });
+
+    ui.convert.addEventListener('click', async () => {
+      if (!inputFile) {
+        alert('Выберите файл');
+        return;
+      }
+
+      ui.status.textContent = 'Загрузка FFmpeg...';
+      await ffmpeg.load({ coreURL }); // теперь можно грузить из CDN — COOP/COEP решает CORS
+
+      ui.status.textContent = 'Конвертация...';
+      const inName = 'input.' + inputFile.name.split('.').pop();
+      const outName = 'output.' + ui.format.value;
+
       await ffmpeg.writeFile(inName, await toUint8Array(inputFile));
 
-      const outName='output.'+ui.format.value;
-      const args=['-i',inName,'-b:a',ui.bitrate.value+'k','-ar',ui.samplerate.value,'-ac',ui.channels.value,outName];
+      const args = [
+        '-i', inName,
+        '-b:a', ui.bitrate.value + 'k',
+        '-ar', ui.samplerate.value,
+        '-ac', ui.channels.value,
+        outName
+      ];
+
       await ffmpeg.exec(args);
 
-      const data=await ffmpeg.readFile(outName);
-      const mimeByFmt={mp3:'audio/mpeg',aac:'audio/aac',ogg:'audio/ogg',wav:'audio/wav',mp4:'audio/mp4'};
-      const blob=new Blob([data.buffer],{type:mimeByFmt[ui.format.value]||'application/octet-stream'});
-      const url=URL.createObjectURL(blob);
-      ui.download.href=url;
-      ui.download.download=outName;
-      ui.download.style.display='inline-block';
-      ui.status.textContent='Готово: '+outName;
+      const data = await ffmpeg.readFile(outName);
+      const mimeByFmt = {
+        mp3: 'audio/mpeg',
+        aac: 'audio/aac',
+        ogg: 'audio/ogg',
+        wav: 'audio/wav',
+        mp4: 'audio/mp4'
+      };
+
+      const blob = new Blob([data.buffer], { type: mimeByFmt[ui.format.value] || 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+
+      ui.download.href = url;
+      ui.download.download = outName;
+      ui.download.style.display = 'inline-block';
+      ui.status.textContent = 'Готово: ' + outName;
     });
   </script>
 </body>
