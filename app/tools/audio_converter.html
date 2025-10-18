@@ -377,6 +377,17 @@
             color: #81c784;
         }
 
+        .ffmpeg-status.info {
+            background: #e8f4f8;
+            border-color: #4fc3f7;
+            color: #0277bd;
+        }
+
+        [data-theme="dark"] .ffmpeg-status.info {
+            background: #1a2a35;
+            color: #4fc3f7;
+        }
+
         .ffmpeg-status.cached {
             background: #f3e5f5;
             border-color: #9c27b0;
@@ -605,19 +616,19 @@
             <div class="ffmpeg-status" id="ffmpegStatus"></div>
             
             <div class="warning" id="formatWarning">
-                ⚠️ Браузер не поддерживает прямую конвертацию в MP3. Используйте WebM или MP4 для сжатия с потерями.
+                ⚠️ Этот формат требует FFmpeg. При работе через file:// используйте WAV.
             </div>
 
             <div class="control-group">
                 <label for="outputFormat">Выходной формат:</label>
                 <select id="outputFormat">
-                    <option value="mp3">MP3 (универсальный, FFmpeg)</option>
-                    <option value="wav">WAV (без сжатия, максимальное качество)</option>
-                    <option value="flac">FLAC (сжатие без потерь, FFmpeg)</option>
-                    <option value="webm-opus">WebM Opus (рекомендуется, высокое качество)</option>
+                    <option value="mp3">MP3 (универсальный)</option>
+                    <option value="wav">WAV (без сжатия, нативная обработка)</option>
+                    <option value="flac">FLAC (сжатие без потерь)</option>
+                    <option value="webm-opus">WebM Opus (рекомендуется)</option>
                     <option value="webm-vorbis">WebM Vorbis</option>
                     <option value="mp4">MP4/AAC (для совместимости)</option>
-                    <option value="ogg">OGG Opus</option>
+                    <option value="ogg">OGG Opus (открытый формат)</option>
                 </select>
                 <div class="info-text" id="formatInfo"></div>
             </div>
@@ -685,11 +696,17 @@
 
         <div class="supported-formats">
             <h3>📋 О форматах</h3>
-            <p><strong>MP3:</strong> Самый популярный формат, работает везде (требует FFmpeg)</p>
-            <p><strong>FLAC:</strong> Сжатие без потерь качества, меньше WAV (требует FFmpeg)</p>
-            <p><strong>WAV:</strong> Без сжатия, лучшее качество, большой размер</p>
-            <p><strong>WebM Opus:</strong> Отличное качество, малый размер, современный формат</p>
-            <p><strong>MP4/AAC:</strong> Хорошая совместимость со всеми устройствами</p>
+            <p><strong>MP3:</strong> Самый популярный формат, работает на всех устройствах</p>
+            <p><strong>FLAC:</strong> Сжатие без потерь качества, отлично для архивов</p>
+            <p><strong>OGG Opus:</strong> Открытый формат с отличным качеством и компрессией</p>
+            <p><strong>WAV:</strong> Без сжатия, максимальное качество (нативная обработка)</p>
+            <p><strong>WebM Opus:</strong> Современный формат, лучший баланс качества и размера</p>
+            <p><strong>WebM Vorbis:</strong> Хорошее качество, широкая поддержка</p>
+            <p><strong>MP4/AAC:</strong> Отличная совместимость с Apple устройствами</p>
+            <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); font-size: 13px;">
+                <strong>ℹ️ Все форматы кроме WAV обрабатываются через FFmpeg</strong><br>
+                FFmpeg (~25 МБ) загружается один раз и кешируется в браузере для последующих использований.
+            </p>
         </div>
     </div>
 
@@ -773,7 +790,7 @@
                     
                     if (this.isFileProtocol) {
                         this.updateLoadingProgress(100, 'Готово! (file:// - FFmpeg недоступен)');
-                        this.loadingCacheInfo.textContent = 'MP3/FLAC требуют веб-сервер';
+                        this.loadingCacheInfo.textContent = 'Доступен только формат WAV без веб-сервера';
                         await new Promise(resolve => setTimeout(resolve, 1500));
                         this.hideLoadingScreen();
                         return;
@@ -920,7 +937,7 @@
             updateFormatOptions() {
                 const format = this.outputFormat.value;
                 const isWav = format === 'wav';
-                const usesFFmpeg = format === 'mp3' || format === 'flac';
+                const usesFFmpeg = format === 'mp3' || format === 'flac' || format === 'ogg';
                 
                 this.bitrateGroup.style.display = (isWav || format === 'flac') ? 'none' : 'block';
                 this.bitDepthGroup.style.display = isWav ? 'block' : 'none';
@@ -932,15 +949,27 @@
                     'webm-opus': 'Лучший баланс качества и размера, современный кодек',
                     'webm-vorbis': 'Хорошее качество, широкая поддержка',
                     'mp4': 'Совместимость с Apple устройствами',
-                    'ogg': 'Открытый формат, хорошее качество'
+                    'ogg': 'Открытый формат, хорошее качество (через FFmpeg)'
                 };
 
                 this.formatInfo.textContent = formatDescriptions[format] || '';
+                
+                // Check MediaRecorder support for non-FFmpeg formats
+                if (!usesFFmpeg && !isWav && format !== 'ogg') {
+                    const mimeType = this.getMimeType(format);
+                    if (!MediaRecorder.isTypeSupported(mimeType)) {
+                        this.showFFmpegStatus(`⚠️ Формат ${format} может не поддерживаться вашим браузером`, 'warning');
+                    } else {
+                        this.ffmpegStatus.style.display = 'none';
+                    }
+                }
                 
                 if (usesFFmpeg && this.isFileProtocol) {
                     this.showFileProtocolWarning();
                 } else if (usesFFmpeg && this.ffmpegLoaded) {
                     this.showFFmpegStatus('✓ FFmpeg готов к работе', 'success');
+                } else if (usesFFmpeg) {
+                    this.ffmpegStatus.style.display = 'none';
                 } else {
                     this.ffmpegStatus.style.display = 'none';
                 }
@@ -957,11 +986,17 @@
                 this.ffmpegStatus.style.display = 'block';
                 this.ffmpegStatus.innerHTML = `
                     <div>
-                        <strong>⚠️ MP3/FLAC требует веб-сервер</strong>
+                        <strong>⚠️ Все форматы кроме WAV требуют веб-сервер</strong>
                         <p style="margin: 8px 0;">Файл открыт напрямую (file://), что блокирует FFmpeg.</p>
                         <div class="solution-box">
-                            Используйте: WebM Opus, MP4/AAC или WAV<br>
-                            Или запустите локальный сервер: <code>python -m http.server 8000</code>
+                            <strong>Решение:</strong> Запустите локальный веб-сервер:<br>
+                            • Python: <code>python -m http.server 8000</code><br>
+                            • Node.js: <code>npx http-server</code><br>
+                            • PHP: <code>php -S localhost:8000</code><br>
+                            Затем откройте <code>http://localhost:8000</code>
+                        </div>
+                        <div class="solution-box" style="margin-top: 8px;">
+                            <strong>Временное решение:</strong> Используйте только формат WAV (работает без веб-сервера)
                         </div>
                     </div>
                 `;
@@ -969,7 +1004,7 @@
 
             async loadFFmpeg(isPreload = false) {
                 if (this.isFileProtocol) {
-                    throw new Error('FFmpeg не работает при открытии через file://');
+                    throw new Error('FFmpeg не работает при открытии через file://. Запустите локальный веб-сервер или используйте формат WAV.');
                 }
 
                 if (this.ffmpegLoaded) return true;
@@ -1038,7 +1073,20 @@
                 try {
                     const { fetchFile } = FFmpeg;
                     const inputFileName = 'input.' + this.getFileExtension(this.currentFile.name);
-                    const outputFileName = 'output.' + format;
+                    
+                    // Determine output file extension
+                    let outputExt;
+                    if (format === 'mp3') outputExt = 'mp3';
+                    else if (format === 'flac') outputExt = 'flac';
+                    else if (format === 'ogg') outputExt = 'ogg';
+                    else if (format === 'mp4') outputExt = 'm4a';
+                    else if (format.startsWith('webm')) outputExt = 'webm';
+                    else outputExt = format;
+                    
+                    const outputFileName = 'output.' + outputExt;
+
+                    console.log('[FFmpeg] Начало конвертации:', inputFileName, '→', outputFileName);
+                    console.log('[FFmpeg] Параметры: формат=', format, 'битрейт=', bitrate, 'sampleRate=', sampleRate, 'каналы=', channels);
 
                     this.ffmpeg.FS('writeFile', inputFileName, await fetchFile(this.currentFile));
 
@@ -1046,38 +1094,65 @@
 
                     const args = ['-i', inputFileName];
 
+                    // Configure codec based on format
                     if (format === 'mp3') {
                         args.push('-codec:a', 'libmp3lame');
                         args.push('-b:a', bitrate + 'k');
                     } else if (format === 'flac') {
                         args.push('-codec:a', 'flac');
                         args.push('-compression_level', '8');
+                    } else if (format === 'ogg') {
+                        args.push('-codec:a', 'libopus');
+                        args.push('-b:a', bitrate + 'k');
+                        args.push('-vbr', 'on');
+                    } else if (format === 'webm-opus') {
+                        args.push('-codec:a', 'libopus');
+                        args.push('-b:a', bitrate + 'k');
+                    } else if (format === 'webm-vorbis') {
+                        args.push('-codec:a', 'libvorbis');
+                        args.push('-b:a', bitrate + 'k');
+                    } else if (format === 'mp4') {
+                        args.push('-codec:a', 'aac');
+                        args.push('-b:a', bitrate + 'k');
                     }
 
+                    // Sample rate and channels
                     args.push('-ar', sampleRate.toString());
                     args.push('-ac', channels.toString());
+                    
+                    // Output file
                     args.push(outputFileName);
+
+                    console.log('[FFmpeg] Команда: ffmpeg', args.join(' '));
 
                     await this.ffmpeg.run(...args);
 
                     this.updateProgress(90, 'Получение результата...');
 
                     const outputData = this.ffmpeg.FS('readFile', outputFileName);
+                    console.log('[FFmpeg] Файл создан, размер:', outputData.length, 'байт');
 
+                    // Cleanup
                     try {
                         this.ffmpeg.FS('unlink', inputFileName);
                         this.ffmpeg.FS('unlink', outputFileName);
                     } catch (e) {
-                        console.warn('Не удалось удалить временные файлы');
+                        console.warn('[FFmpeg] Не удалось удалить временные файлы');
                     }
 
+                    // Determine MIME type
                     const mimeTypes = {
                         'mp3': 'audio/mpeg',
-                        'flac': 'audio/flac'
+                        'flac': 'audio/flac',
+                        'ogg': 'audio/ogg',
+                        'webm-opus': 'audio/webm',
+                        'webm-vorbis': 'audio/webm',
+                        'mp4': 'audio/mp4'
                     };
 
-                    return new Blob([outputData.buffer], { type: mimeTypes[format] });
+                    return new Blob([outputData.buffer], { type: mimeTypes[format] || 'audio/mpeg' });
                 } catch (error) {
+                    console.error('[FFmpeg] Ошибка конвертации:', error);
                     throw new Error('FFmpeg ошибка: ' + error.message);
                 }
             }
@@ -1160,16 +1235,22 @@
                     let convertedBlob;
                     let outputExtension;
                     
-                    if (format === 'mp3' || format === 'flac') {
-                        await this.loadFFmpeg();
-                        convertedBlob = await this.convertWithFFmpeg(format, bitrate, targetSampleRate, targetChannels);
-                        outputExtension = format;
-                    } else if (format === 'wav') {
+                    // WAV uses native conversion (fast), everything else uses FFmpeg
+                    if (format === 'wav') {
                         convertedBlob = await this.convertToWAV(targetSampleRate, targetChannels, bitDepth);
                         outputExtension = 'wav';
                     } else {
-                        convertedBlob = await this.convertWithMediaRecorder(format, bitrate, targetSampleRate, targetChannels);
-                        outputExtension = format.includes('webm') ? 'webm' : (format === 'mp4' ? 'm4a' : 'ogg');
+                        // All other formats go through FFmpeg
+                        await this.loadFFmpeg();
+                        convertedBlob = await this.convertWithFFmpeg(format, bitrate, targetSampleRate, targetChannels);
+                        
+                        // Determine output extension
+                        if (format === 'mp3') outputExtension = 'mp3';
+                        else if (format === 'flac') outputExtension = 'flac';
+                        else if (format === 'ogg') outputExtension = 'ogg';
+                        else if (format === 'mp4') outputExtension = 'm4a';
+                        else if (format.startsWith('webm')) outputExtension = 'webm';
+                        else outputExtension = format;
                     }
 
                     this.updateProgress(100, 'Готово!');
@@ -1264,107 +1345,6 @@
 
                 this.updateProgress(90, 'Финализация...');
                 return new Blob([arrayBuffer], { type: 'audio/wav' });
-            }
-
-            async convertWithMediaRecorder(format, bitrate, targetSampleRate, targetChannels) {
-                return new Promise((resolve, reject) => {
-                    this.updateProgress(30, 'Обработка аудио...');
-
-                    const duration = this.audioBuffer.duration;
-                    const length = Math.ceil(duration * targetSampleRate);
-                    
-                    const offlineContext = new OfflineAudioContext(
-                        targetChannels,
-                        length,
-                        targetSampleRate
-                    );
-
-                    const source = offlineContext.createBufferSource();
-                    source.buffer = this.audioBuffer;
-
-                    if (targetChannels === 1 && this.audioBuffer.numberOfChannels === 2) {
-                        const merger = offlineContext.createChannelMerger(1);
-                        const splitter = offlineContext.createChannelSplitter(2);
-                        const gainL = offlineContext.createGain();
-                        const gainR = offlineContext.createGain();
-                        
-                        gainL.gain.value = 0.5;
-                        gainR.gain.value = 0.5;
-                        
-                        source.connect(splitter);
-                        splitter.connect(gainL, 0);
-                        splitter.connect(gainR, 1);
-                        gainL.connect(merger, 0, 0);
-                        gainR.connect(merger, 0, 0);
-                        merger.connect(offlineContext.destination);
-                    } else {
-                        source.connect(offlineContext.destination);
-                    }
-
-                    source.start();
-
-                    offlineContext.startRendering().then(renderedBuffer => {
-                        this.updateProgress(50, 'Запись аудио...');
-
-                        const playbackContext = new AudioContext({ sampleRate: targetSampleRate });
-                        const bufferSource = playbackContext.createBufferSource();
-                        bufferSource.buffer = renderedBuffer;
-
-                        const destination = playbackContext.createMediaStreamDestination();
-                        bufferSource.connect(destination);
-
-                        const mimeType = this.getMimeType(format);
-                        const options = { mimeType };
-                        
-                        if (bitrate) {
-                            options.audioBitsPerSecond = bitrate * 1000;
-                        }
-
-                        const mediaRecorder = new MediaRecorder(destination.stream, options);
-                        const chunks = [];
-
-                        mediaRecorder.ondataavailable = (event) => {
-                            if (event.data.size > 0) {
-                                chunks.push(event.data);
-                            }
-                        };
-
-                        mediaRecorder.onstop = () => {
-                            const blob = new Blob(chunks, { type: mimeType });
-                            playbackContext.close();
-                            resolve(blob);
-                        };
-
-                        mediaRecorder.onerror = (event) => {
-                            playbackContext.close();
-                            reject(new Error('MediaRecorder error: ' + event.error));
-                        };
-
-                        mediaRecorder.start();
-                        bufferSource.start();
-
-                        setTimeout(() => {
-                            if (mediaRecorder.state !== 'inactive') {
-                                mediaRecorder.stop();
-                            }
-                            if (bufferSource.context.state !== 'closed') {
-                                bufferSource.stop();
-                            }
-                        }, (renderedBuffer.duration + 0.1) * 1000);
-
-                        this.updateProgress(80, 'Обработка...');
-                    }).catch(reject);
-                });
-            }
-
-            getMimeType(format) {
-                const mimeTypes = {
-                    'webm-opus': 'audio/webm;codecs=opus',
-                    'webm-vorbis': 'audio/webm;codecs=vorbis',
-                    'mp4': 'audio/mp4',
-                    'ogg': 'audio/ogg;codecs=opus'
-                };
-                return mimeTypes[format] || 'audio/webm;codecs=opus';
             }
 
             async resampleAudio(audioBuffer, targetSampleRate) {
