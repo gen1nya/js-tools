@@ -110,17 +110,15 @@
   </div>
 
   <script type="module">
-    
-    import { FFmpeg } from './libs/ffmpeg/index.js';
-    const { createFFmpeg } = FFmpeg;
-      const ffmpeg = createFFmpeg({
-        corePath: '/tools/libs/ffmpeg/ffmpeg-core.js',
-        workerPath: '/tools/libs/ffmpeg/worker.js',
-        workerOptions: {
-          type: 'module'
-        },
-        log: true
-      });
+    import { createFFmpeg, fetchFile } from './libs/ffmpeg/index.js';
+    const ffmpeg = createFFmpeg({
+      corePath: '/tools/libs/ffmpeg/ffmpeg-core.js',
+      workerPath: '/tools/libs/ffmpeg/worker.js',
+      workerOptions: {
+        type: 'module'
+      },
+      log: true
+    });
 
     const ui = {
       drop: document.getElementById('drop'),
