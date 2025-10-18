@@ -175,9 +175,9 @@
       
       const base = './libs/ffmpeg';
       await ffmpeg.load({
-        coreURL: `${base}/ffmpeg-core.js`,
-        wasmURL: `${base}/ffmpeg-core.wasm`,
-        workerURL: `${base}/worker.js`,
+        coreURL: 'ffmpeg-core.js',
+        wasmURL: 'ffmpeg-core.wasm',
+        workerURL: 'worker.js',
       });
 
       ui.status.textContent = 'Конвертация...';
