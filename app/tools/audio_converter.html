@@ -700,16 +700,19 @@
                 }
 
                 this.ffmpegLoading = true;
-                this.showFFmpegLoadingStatus('Загрузка FFmpeg библиотеки (~31 МБ)...', true);
+                this.showFFmpegLoadingStatus('Загрузка FFmpeg библиотеки (~25 МБ)...', true);
 
                 try {
                     const { createFFmpeg, fetchFile } = FFmpeg;
                     
+                    // Use single-threaded version to avoid SharedArrayBuffer requirement
                     this.ffmpeg = createFFmpeg({
                         log: true,
-                        corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+                        corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
                         progress: ({ ratio }) => {
-                            console.log('[FFmpeg Progress]', `${(ratio * 100).toFixed(1)}%`);
+                            if (ratio > 0 && ratio < 1) {
+                                console.log('[FFmpeg Progress]', `${(ratio * 100).toFixed(1)}%`);
+                            }
                         }
                     });
 
@@ -727,6 +730,7 @@
                     this.ffmpegLoading = false;
                     this.ffmpegStatus.className = 'ffmpeg-status error';
                     this.showFFmpegLoadingStatus('❌ Ошибка загрузки FFmpeg: ' + error.message, false);
+                    console.error('[FFmpeg Load Error]', error);
                     throw error;
                 }
             }
@@ -750,36 +754,24 @@
                 this.updateProgress(20, 'Подготовка файла для FFmpeg...');
 
                 try {
+                    const { fetchFile } = FFmpeg;
                     const inputFileName = 'input.' + this.getFileExtension(this.currentFile.name);
                     const outputFileName = 'output.' + format;
 
                     console.log('[FFmpeg] Начало конвертации:', inputFileName, '→', outputFileName);
 
                     // Write input file to FFmpeg virtual filesystem
-                    const inputData = new Uint8Array(await this.currentFile.arrayBuffer());
-                    await this.ffmpeg.writeFile(inputFileName, inputData);
-                    console.log('[FFmpeg] Входной файл записан, размер:', inputData.length, 'байт');
+                    this.ffmpeg.FS('writeFile', inputFileName, await fetchFile(this.currentFile));
+                    console.log('[FFmpeg] Входной файл записан');
 
                     this.updateProgress(40, 'Конвертация через FFmpeg...');
 
-                    // Setup progress tracking
-                    let progressHandler;
-                    const progressPromise = new Promise((resolve) => {
-                        progressHandler = ({ progress }) => {
-                            const percent = Math.min(95, 40 + Math.floor(progress * 50));
-                            this.updateProgress(percent, `Конвертация... ${(progress * 100).toFixed(0)}%`);
-                            if (progress >= 1) resolve();
-                        };
-                        this.ffmpeg.on('progress', progressHandler);
-                    });
-
-                    // Build FFmpeg command
+                    // Build FFmpeg command arguments
                     const args = ['-i', inputFileName];
 
                     // Audio codec settings
                     if (format === 'mp3') {
                         args.push('-codec:a', 'libmp3lame');
-                        // Use bitrate instead of quality for more predictable behavior
                         args.push('-b:a', bitrate + 'k');
                     } else if (format === 'flac') {
                         args.push('-codec:a', 'flac');
@@ -792,36 +784,25 @@
                     // Channels
                     args.push('-ac', channels.toString());
 
-                    // Force overwrite
-                    args.push('-y');
-
                     // Output file
                     args.push(outputFileName);
 
                     console.log('[FFmpeg] Команда:', args.join(' '));
 
-                    // Run FFmpeg with timeout
-                    const execPromise = this.ffmpeg.exec(args);
-                    const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error('FFmpeg timeout (60 секунд)')), 60000);
-                    });
-
-                    await Promise.race([execPromise, timeoutPromise]);
+                    // Run FFmpeg
+                    await this.ffmpeg.run(...args);
                     console.log('[FFmpeg] Конвертация завершена');
-
-                    // Remove progress handler
-                    this.ffmpeg.off('progress', progressHandler);
 
                     this.updateProgress(90, 'Получение результата...');
 
                     // Read output file
-                    const outputData = await this.ffmpeg.readFile(outputFileName);
+                    const outputData = this.ffmpeg.FS('readFile', outputFileName);
                     console.log('[FFmpeg] Выходной файл прочитан, размер:', outputData.length, 'байт');
 
                     // Clean up
                     try {
-                        await this.ffmpeg.deleteFile(inputFileName);
-                        await this.ffmpeg.deleteFile(outputFileName);
+                        this.ffmpeg.FS('unlink', inputFileName);
+                        this.ffmpeg.FS('unlink', outputFileName);
                         console.log('[FFmpeg] Временные файлы удалены');
                     } catch (e) {
                         console.warn('[FFmpeg] Не удалось удалить временные файлы:', e);
@@ -832,7 +813,7 @@
                         'flac': 'audio/flac'
                     };
 
-                    return new Blob([outputData], { type: mimeTypes[format] });
+                    return new Blob([outputData.buffer], { type: mimeTypes[format] });
                 } catch (error) {
                     console.error('[FFmpeg] Ошибка:', error);
                     throw new Error('FFmpeg ошибка: ' + error.message);
