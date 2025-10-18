@@ -990,7 +990,8 @@
                     const { createFFmpeg } = FFmpeg;
                     
                     this.ffmpeg = createFFmpeg({
-                        log: false,
+                        log: true,
+                        mainName: 'main',
                         corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
                         progress: ({ ratio }) => {
                             if (ratio > 0 && ratio < 1) {
