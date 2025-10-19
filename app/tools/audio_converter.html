@@ -685,7 +685,8 @@
             <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); font-size: 13px;">
                 <strong>ℹ️ Все форматы кроме WAV обрабатываются через FFmpeg</strong><br>
                 FFmpeg (~25 МБ) загружается один раз и кешируется в браузере.<br>
-                <em>Примечание: Opus кодек (OGG/WebM Opus) оптимизирован для 48 kHz и автоматически конвертируется в эту частоту.</em>
+                <em>Примечание: Opus кодек (OGG/WebM Opus) оптимизирован для 48 kHz и автоматически конвертируется в эту частоту.</em><br>
+                <em>Из-за ограничений FFmpeg.wasm 0.11.x, библиотека перезагружается между конвертациями (~1-2 сек из кеша).</em>
             </p>
         </div>
     </div>
@@ -984,7 +985,7 @@
                     await new Promise(resolve => setTimeout(resolve, 100));
                 }
 
-                if (this.ffmpegLoaded) return true;
+                if (this.ffmpegLoaded && this.ffmpeg) return true;
                 if (this.ffmpegLoading) {
                     while (this.ffmpegLoading) {
                         await new Promise(resolve => setTimeout(resolve, 100));
@@ -995,7 +996,7 @@
                 this.ffmpegLoading = true;
                 
                 if (!isPreload) {
-                    this.showFFmpegStatus('⏳ Загрузка FFmpeg библиотеки...', '');
+                    this.showFFmpegStatus('⏳ Загрузка FFmpeg (из кеша)...', '');
                 }
 
                 try {
@@ -1031,7 +1032,7 @@
                         this.showFFmpegStatus('✓ FFmpeg готов к работе', 'success');
                         setTimeout(() => {
                             this.ffmpegStatus.style.display = 'none';
-                        }, 3000);
+                        }, 2000);
                     }
                     
                     return true;
@@ -1069,24 +1070,6 @@
                     console.log('[FFmpeg] Начало конвертации:', inputFileName, '→', outputFileName);
                     console.log('[FFmpeg] Параметры: формат=', format, 'битрейт=', bitrate, 'sampleRate=', sampleRate, 'каналы=', channels);
 
-                    // Clean up any existing audio files (but not system directories)
-                    try {
-                        const files = this.ffmpeg.FS('readdir', '/');
-                        const systemFiles = ['.', '..', 'tmp', 'home', 'dev', 'proc', 'etc'];
-                        for (const file of files) {
-                            if (!systemFiles.includes(file)) {
-                                try {
-                                    this.ffmpeg.FS('unlink', file);
-                                    console.log('[FFmpeg] Удален старый файл:', file);
-                                } catch (e) {
-                                    console.warn('[FFmpeg] Не удалось удалить:', file);
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('[FFmpeg] Не удалось очистить FS перед конвертацией');
-                    }
-
                     this.ffmpeg.FS('writeFile', inputFileName, await fetchFile(this.currentFile));
                     this.updateProgress(40, 'Конвертация через FFmpeg...');
 
@@ -1099,10 +1082,10 @@
                         args.push('-codec:a', 'flac', '-compression_level', '8');
                     } else if (format === 'ogg') {
                         args.push('-codec:a', 'libopus', '-b:a', bitrate + 'k', '-vbr', 'on');
-                        sampleRate = 48000; // Opus requires 48kHz
+                        sampleRate = 48000;
                     } else if (format === 'webm-opus') {
                         args.push('-codec:a', 'libopus', '-b:a', bitrate + 'k');
-                        sampleRate = 48000; // Opus requires 48kHz
+                        sampleRate = 48000;
                     } else if (format === 'webm-vorbis') {
                         args.push('-codec:a', 'libvorbis', '-b:a', bitrate + 'k');
                     } else if (format === 'mp4') {
@@ -1113,28 +1096,10 @@
 
                     console.log('[FFmpeg] Команда: ffmpeg', args.join(' '));
                     await this.ffmpeg.run(...args);
-                    
-                    // Small delay to ensure FFmpeg finishes properly
-                    await new Promise(resolve => setTimeout(resolve, 100));
 
                     this.updateProgress(90, 'Получение результата...');
                     const outputData = this.ffmpeg.FS('readFile', outputFileName);
                     console.log('[FFmpeg] Файл создан, размер:', outputData.length, 'байт');
-
-                    // Cleanup
-                    try {
-                        const files = this.ffmpeg.FS('readdir', '/');
-                        if (files.includes(inputFileName)) {
-                            this.ffmpeg.FS('unlink', inputFileName);
-                            console.log('[FFmpeg] Удален:', inputFileName);
-                        }
-                        if (files.includes(outputFileName)) {
-                            this.ffmpeg.FS('unlink', outputFileName);
-                            console.log('[FFmpeg] Удален:', outputFileName);
-                        }
-                    } catch (e) {
-                        console.warn('[FFmpeg] Не удалось удалить временные файлы:', e);
-                    }
 
                     const mimeTypes = {
                         'mp3': 'audio/mpeg',
@@ -1148,30 +1113,14 @@
                     return new Blob([outputData.buffer], { type: mimeTypes[format] || 'audio/mpeg' });
                 } catch (error) {
                     console.error('[FFmpeg] Ошибка конвертации:', error);
-                    
-                    // Try to clean up on error
-                    try {
-                        const files = this.ffmpeg.FS('readdir', '/');
-                        console.log('[FFmpeg] Файлы в системе после ошибки:', files);
-                        const systemFiles = ['.', '..', 'tmp', 'home', 'dev', 'proc', 'etc'];
-                        for (const file of files) {
-                            if (!systemFiles.includes(file)) {
-                                try {
-                                    this.ffmpeg.FS('unlink', file);
-                                    console.log('[FFmpeg] Очищен после ошибки:', file);
-                                } catch (e) {}
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('[FFmpeg] Не удалось прочитать/очистить директорию после ошибки');
-                    }
-                    
                     throw new Error('FFmpeg ошибка: ' + error.message);
                 } finally {
-                    // Give FFmpeg time to reset before marking as not busy
-                    await new Promise(resolve => setTimeout(resolve, 150));
+                    // WORKAROUND для бага FFmpeg.wasm 0.11.x single-thread:
+                    // Экземпляр не может быть переиспользован, нужно пересоздавать
+                    console.log('[FFmpeg] Сброс экземпляра для следующей конвертации');
+                    this.ffmpegLoaded = false;
+                    this.ffmpeg = null;
                     this.ffmpegBusy = false;
-                    console.log('[FFmpeg] Флаг ffmpegBusy сброшен');
                 }
             }
 
