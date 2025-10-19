@@ -157,31 +157,103 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
+            gap: 20px;
         }
 
         h1 {
             color: var(--text-primary);
             font-size: 28px;
             font-weight: 600;
+            flex: 1;
         }
 
         .theme-toggle {
-            background: var(--bg-info);
-            border: 2px solid var(--border-color);
-            border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            position: relative;
+            width: 70px;
+            height: 36px;
+            background: var(--border-color);
+            border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 20px;
+            border: none;
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
         .theme-toggle:hover {
-            transform: rotate(20deg) scale(1.1);
-            border-color: var(--bg-primary);
+            background: #d0d0d0;
+            transform: scale(1.05);
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.98);
+        }
+
+        [data-theme="dark"] .theme-toggle {
+            background: #404060;
+        }
+
+        [data-theme="dark"] .theme-toggle:hover {
+            background: #505070;
+        }
+
+        .theme-toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
+            border-radius: 50%;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 2;
+        }
+
+        .theme-toggle-slider::before {
+            content: '☀️';
+            transition: transform 0.3s ease;
+        }
+
+        [data-theme="dark"] .theme-toggle-slider {
+            transform: translateX(34px);
+        }
+
+        [data-theme="dark"] .theme-toggle-slider::before {
+            content: '🌙';
+            transform: rotate(360deg);
+        }
+
+        .theme-toggle-icon {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            transition: opacity 0.3s ease;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .theme-toggle-icon.sun {
+            left: 10px;
+            opacity: 1;
+        }
+
+        .theme-toggle-icon.moon {
+            right: 10px;
+            opacity: 0.3;
+        }
+
+        [data-theme="dark"] .theme-toggle-icon.sun {
+            opacity: 0.3;
+        }
+
+        [data-theme="dark"] .theme-toggle-icon.moon {
+            opacity: 1;
         }
 
         .upload-area {
@@ -577,7 +649,11 @@
     <div class="container">
         <div class="header">
             <h1>🎵 Конвертер аудиоформатов</h1>
-            <button class="theme-toggle" id="themeToggle" title="Переключить тему">🌙</button>
+            <button class="theme-toggle" id="themeToggle" title="Переключить тему" aria-label="Переключить тему">
+                <span class="theme-toggle-icon sun">☀️</span>
+                <span class="theme-toggle-icon moon">🌙</span>
+                <span class="theme-toggle-slider"></span>
+            </button>
         </div>
         
         <div class="upload-area" id="uploadArea">
@@ -748,11 +824,6 @@
             initializeTheme() {
                 const savedTheme = localStorage.getItem('audio-converter-theme') || 'light';
                 document.documentElement.setAttribute('data-theme', savedTheme);
-                this.updateThemeIcon(savedTheme);
-            }
-
-            updateThemeIcon(theme) {
-                this.themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
             }
 
             toggleTheme() {
@@ -760,7 +831,6 @@
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
                 document.documentElement.setAttribute('data-theme', newTheme);
                 localStorage.setItem('audio-converter-theme', newTheme);
-                this.updateThemeIcon(newTheme);
             }
 
             async startInitialization() {
