@@ -1069,14 +1069,18 @@
                     console.log('[FFmpeg] Начало конвертации:', inputFileName, '→', outputFileName);
                     console.log('[FFmpeg] Параметры: формат=', format, 'битрейт=', bitrate, 'sampleRate=', sampleRate, 'каналы=', channels);
 
-                    // Clean up any existing files
+                    // Clean up any existing audio files (but not system directories)
                     try {
                         const files = this.ffmpeg.FS('readdir', '/');
+                        const systemFiles = ['.', '..', 'tmp', 'home', 'dev', 'proc', 'etc'];
                         for (const file of files) {
-                            if (file !== '.' && file !== '..' && file !== 'tmp') {
+                            if (!systemFiles.includes(file)) {
                                 try {
                                     this.ffmpeg.FS('unlink', file);
-                                } catch (e) {}
+                                    console.log('[FFmpeg] Удален старый файл:', file);
+                                } catch (e) {
+                                    console.warn('[FFmpeg] Не удалось удалить:', file);
+                                }
                             }
                         }
                     } catch (e) {
@@ -1109,6 +1113,9 @@
 
                     console.log('[FFmpeg] Команда: ffmpeg', args.join(' '));
                     await this.ffmpeg.run(...args);
+                    
+                    // Small delay to ensure FFmpeg finishes properly
+                    await new Promise(resolve => setTimeout(resolve, 100));
 
                     this.updateProgress(90, 'Получение результата...');
                     const outputData = this.ffmpeg.FS('readFile', outputFileName);
@@ -1116,10 +1123,17 @@
 
                     // Cleanup
                     try {
-                        this.ffmpeg.FS('unlink', inputFileName);
-                        this.ffmpeg.FS('unlink', outputFileName);
+                        const files = this.ffmpeg.FS('readdir', '/');
+                        if (files.includes(inputFileName)) {
+                            this.ffmpeg.FS('unlink', inputFileName);
+                            console.log('[FFmpeg] Удален:', inputFileName);
+                        }
+                        if (files.includes(outputFileName)) {
+                            this.ffmpeg.FS('unlink', outputFileName);
+                            console.log('[FFmpeg] Удален:', outputFileName);
+                        }
                     } catch (e) {
-                        console.warn('[FFmpeg] Не удалось удалить временные файлы');
+                        console.warn('[FFmpeg] Не удалось удалить временные файлы:', e);
                     }
 
                     const mimeTypes = {
@@ -1134,9 +1148,30 @@
                     return new Blob([outputData.buffer], { type: mimeTypes[format] || 'audio/mpeg' });
                 } catch (error) {
                     console.error('[FFmpeg] Ошибка конвертации:', error);
+                    
+                    // Try to clean up on error
+                    try {
+                        const files = this.ffmpeg.FS('readdir', '/');
+                        console.log('[FFmpeg] Файлы в системе после ошибки:', files);
+                        const systemFiles = ['.', '..', 'tmp', 'home', 'dev', 'proc', 'etc'];
+                        for (const file of files) {
+                            if (!systemFiles.includes(file)) {
+                                try {
+                                    this.ffmpeg.FS('unlink', file);
+                                    console.log('[FFmpeg] Очищен после ошибки:', file);
+                                } catch (e) {}
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[FFmpeg] Не удалось прочитать/очистить директорию после ошибки');
+                    }
+                    
                     throw new Error('FFmpeg ошибка: ' + error.message);
                 } finally {
+                    // Give FFmpeg time to reset before marking as not busy
+                    await new Promise(resolve => setTimeout(resolve, 150));
                     this.ffmpegBusy = false;
+                    console.log('[FFmpeg] Флаг ffmpegBusy сброшен');
                 }
             }
 
