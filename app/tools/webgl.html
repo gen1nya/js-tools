@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glass Shader Demo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        #container {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        #canvasContainer {
+            flex: 1;
+            position: relative;
+            min-width: 0;
+        }
+        #glCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border: 2px solid #333;
+            max-width: 800px;
+        }
+        #contentCanvas {
+            display: none;
+        }
+        #controls {
+            width: 320px;
+            flex-shrink: 0;
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #aaa;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            background: #3a3a3a;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .value {
+            float: right;
+            color: #4a9eff;
+            font-weight: bold;
+        }
+        h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #4a9eff;
+            font-size: 20px;
+        }
+        .scroll-control {
+            background: #3a3a3a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid #4a9eff;
+        }
+        .info {
+            background: #2a4a2a;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #8f8;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 1200px) {
+            #container {
+                flex-direction: column;
+            }
+            #controls {
+                width: 100%;
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="container">
+    <div id="canvasContainer">
+        <canvas id="glCanvas" width="800" height="600"></canvas>
+        <canvas id="contentCanvas" width="800" height="1800"></canvas>
+    </div>
+    <div id="controls">
+        <h3>🔮 Glass Shader</h3>
+
+        <div class="info">
+            💡 Используйте слайдер ниже чтобы прокрутить контент под стеклом!
+        </div>
+
+        <div class="scroll-control">
+            <label>📜 Scroll Position <span class="value" id="scrollValue">0</span></label>
+            <input type="range" id="scrollPosition" min="0" max="1200" step="5" value="0">
+        </div>
+
+        <div class="control-group">
+            <label>Glass Shape</label>
+            <select id="glassShape">
+                <option value="0">Sin Curved Glass</option>
+                <option value="1">Fluted Glass</option>
+                <option value="2">Flat Glass</option>
+                <option value="3" selected>Liquid Glass</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Refraction Index <span class="value" id="refractionValue">0.85</span></label>
+            <input type="range" id="refractionIndex" min="0.5" max="1.5" step="0.01" value="0.85">
+        </div>
+
+        <div class="control-group">
+            <label>Curve Param A <span class="value" id="curveAValue">0.20</span></label>
+            <input type="range" id="curveParamA" min="0" max="1" step="0.01" value="0.2">
+        </div>
+
+        <div class="control-group">
+            <label>Curve Param K <span class="value" id="curveKValue">0.30</span></label>
+            <input type="range" id="curveParamK" min="0" max="2" step="0.01" value="0.3">
+        </div>
+
+        <div class="control-group">
+            <label>Aberration Index <span class="value" id="aberrationValue">0.01</span></label>
+            <input type="range" id="aberrationIndex" min="0" max="0.1" step="0.001" value="0.01">
+        </div>
+
+        <div class="control-group">
+            <label>Blur Radius <span class="value" id="blurValue">2.0</span></label>
+            <input type="range" id="blurRadius" min="0" max="10" step="0.1" value="2">
+        </div>
+
+        <div class="control-group">
+            <label>Corner Radius <span class="value" id="cornerValue">50</span></label>
+            <input type="range" id="cornerRadius" min="0" max="200" step="1" value="50">
+        </div>
+
+        <div class="control-group">
+            <label>Refraction Multiplier <span class="value" id="refractMultValue">3.5</span></label>
+            <input type="range" id="refractionMultiplier" min="0" max="10" step="0.1" value="3.5">
+        </div>
+
+        <div class="control-group">
+            <label>Tilt X <span class="value" id="tiltXValue">0.00</span></label>
+            <input type="range" id="tiltX" min="-0.5" max="0.5" step="0.01" value="0">
+        </div>
+
+        <div class="control-group">
+            <label>Tilt Y <span class="value" id="tiltYValue">0.00</span></label>
+            <input type="range" id="tiltY" min="-0.5" max="0.5" step="0.01" value="0">
+        </div>
+
+        <div class="control-group">
+            <label>Panel Width <span class="value" id="widthValue">600</span></label>
+            <input type="range" id="panelWidth" min="100" max="800" step="10" value="600">
+        </div>
+
+        <div class="control-group">
+            <label>Panel Height <span class="value" id="heightValue">400</span></label>
+            <input type="range" id="panelHeight" min="100" max="600" step="10" value="400">
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('glCanvas');
+    const contentCanvas = document.getElementById('contentCanvas');
+    const contentCtx = contentCanvas.getContext('2d');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+    if (!gl) {
+        alert('WebGL not supported!');
+    }
+
+    // Render content to canvas with scroll offset
+    function renderContentToCanvas(scrollY = 0) {
+        // Clear canvas
+        contentCtx.clearRect(0, 0, contentCanvas.width, contentCanvas.height);
+
+        // Create gradient background
+        const gradient = contentCtx.createLinearGradient(0, 0, contentCanvas.width, contentCanvas.height);
+        gradient.addColorStop(0, '#667eea');
+        gradient.addColorStop(0.5, '#764ba2');
+        gradient.addColorStop(1, '#f093fb');
+        contentCtx.fillStyle = gradient;
+        contentCtx.fillRect(0, 0, contentCanvas.width, contentCanvas.height);
+
+        // Content blocks data
+        const blocks = [
+            { y: 40, title: '🌟 Glass Effect Demo', text: 'Scroll to see content beneath the glass', hasBoxes: false },
+            { y: 250, title: '🎨 Color Blocks', text: '', hasBoxes: true },
+            { y: 550, title: '📐 Physics Simulation', text: 'Surface normals and Snell\'s law', hasBoxes: false },
+            { y: 750, title: '🌈 Chromatic Aberration', text: 'Rainbow edges on real glass', hasBoxes: false },
+            { y: 950, title: '💎 Liquid Glass Mode', text: 'Beveled edges with half-circle profile', hasBoxes: false },
+            { y: 1150, title: '✨ WebGL Magic', text: 'Real-time GPU processing', hasBoxes: false },
+            { y: 1350, title: '🔥 Interactive Demo', text: 'Move the scroll slider!', hasBoxes: false }
+        ];
+
+        // Render each block with scroll offset (inverted because texture is flipped)
+        blocks.forEach(block => {
+            const yPos = block.y + scrollY;
+
+            // Only render if visible
+            if (yPos > -300 && yPos < contentCanvas.height + 100) {
+                // Draw block background
+                contentCtx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                contentCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                contentCtx.lineWidth = 3;
+
+                const blockHeight = block.hasBoxes ? 280 : 150;
+                const blockX = 40;
+                const blockWidth = 720;
+
+                // Rounded rectangle for block
+                contentCtx.beginPath();
+                contentCtx.roundRect(blockX, yPos, blockWidth, blockHeight, 15);
+                contentCtx.fill();
+                contentCtx.stroke();
+
+                // Draw title
+                contentCtx.fillStyle = '#ffffff';
+                contentCtx.font = 'bold 36px Arial';
+                contentCtx.fillText(block.title, blockX + 30, yPos + 55);
+
+                // Draw content
+                if (block.hasBoxes) {
+                    // Draw color boxes
+                    const colors = [
+                        ['#ff6b6b', '#ee5a6f'],
+                        ['#4ecdc4', '#44a08d'],
+                        ['#ffe66d', '#ffb347'],
+                        ['#a8edea', '#fed6e3']
+                    ];
+
+                    colors.forEach((color, i) => {
+                        const grad = contentCtx.createLinearGradient(0, 0, 150, 150);
+                        grad.addColorStop(0, color[0]);
+                        grad.addColorStop(1, color[1]);
+                        contentCtx.fillStyle = grad;
+
+                        const boxX = blockX + 40 + i * 165;
+                        const boxY = yPos + 100;
+
+                        contentCtx.beginPath();
+                        contentCtx.roundRect(boxX, boxY, 140, 140, 20);
+                        contentCtx.fill();
+                    });
+                } else if (block.text) {
+                    // Draw text
+                    contentCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    contentCtx.font = '20px Arial';
+                    contentCtx.fillText(block.text, blockX + 30, yPos + 100);
+                }
+            }
+        });
+
+        // Update WebGL texture
+        updateTexture();
+    }
+
+    // Vertex shader
+    const vertexShaderSource = `
+            attribute vec2 a_position;
+            void main() {
+                gl_Position = vec4(a_position, 0.0, 1.0);
+            }
+        `;
+
+    // Fragment shader
+    const fragmentShaderSource = `
+            precision highp float;
+
+            uniform sampler2D u_content;
+            uniform float u_refractionIndex;
+            uniform vec2 u_resolution;
+            uniform float u_panelHeight;
+            uniform float u_panelWidth;
+            uniform float u_panelX;
+            uniform float u_panelY;
+            uniform int u_glassShape;
+            uniform float u_curveParamA;
+            uniform float u_curveParamK;
+            uniform float u_aberrationIndex;
+            uniform float u_blurRadius;
+            uniform vec2 u_tilt;
+            uniform float u_cornerRadius;
+            uniform float u_refractionMultiplier;
+
+            float curveSin(vec2 fCoord, float A, float k) {
+                return A * sin(k * fCoord.x);
+            }
+
+            float flutedGlass(vec2 fCoord, float A, float k) {
+                return pow(mod(fCoord.x * k - 2.0, 4.0) - 2.0, 2.0) * A * k - A * k * 2.0;
+            }
+
+            float sdRoundedRect(vec2 p, vec2 halfSize, float r) {
+                vec2 q = abs(p) - (halfSize - vec2(r, r));
+                return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+            }
+
+            float bevelProfileHalfCircle(float u) {
+                u = clamp(u, 0.0, 1.0);
+                return sqrt(1.0 - (1.0 - u) * (1.0 - u));
+            }
+
+            float liquidGlassInternal(vec2 fCoord, float R, float Rz, float maxElevation) {
+                vec2 halfSize = 0.5 * vec2(u_panelWidth, u_panelHeight);
+                vec2 center = vec2(u_panelX, u_panelY) + halfSize;
+                vec2 p = fCoord - center;
+
+                float dist = sdRoundedRect(p, halfSize, R);
+
+                if (dist > 0.0) return 0.0;
+                if (Rz <= 1e-6) return maxElevation;
+
+                float inward = -dist;
+                float u = inward / Rz;
+                float profile = bevelProfileHalfCircle(u);
+
+                return maxElevation * profile;
+            }
+
+            float liquidGlass(vec2 fCoord, float A, float k) {
+                return liquidGlassInternal(fCoord, u_cornerRadius, u_cornerRadius * 0.3, 1.5);
+            }
+
+            float curve(vec2 fCoord, float A, float k) {
+                if (u_glassShape == 0) {
+                    return curveSin(fCoord, A, k);
+                } else if (u_glassShape == 1) {
+                    return flutedGlass(fCoord, A, k);
+                } else if (u_glassShape == 3) {
+                    return liquidGlass(fCoord, A, k);
+                }
+                return 0.0;
+            }
+
+            float height(float x, float y) {
+                return curve(vec2(x, y), u_curveParamA, u_curveParamK);
+            }
+
+            vec3 calculateNormal(vec2 fCoord) {
+                float dx = 0.001;
+                float dy = 0.001;
+
+                float dz_dx = (height(fCoord.x + dx, fCoord.y) - height(fCoord.x - dx, fCoord.y)) / (2.0 * dx);
+                float dz_dy = (height(fCoord.x, fCoord.y + dy) - height(fCoord.x, fCoord.y - dy)) / (2.0 * dy);
+
+                vec3 tangent_x = vec3(1.0, 0.0, dz_dx);
+                vec3 tangent_y = vec3(0.0, 1.0, dz_dy);
+
+                vec3 normal = normalize(cross(tangent_x, tangent_y));
+
+                return normal;
+            }
+
+            bool isInsidePanel(vec2 fCoord, float R) {
+                vec2 halfSize = 0.5 * vec2(u_panelWidth, u_panelHeight);
+                vec2 center = vec2(u_panelX, u_panelY) + halfSize;
+                vec2 p = fCoord - center;
+
+                float dist = sdRoundedRect(p, halfSize, R);
+
+                return dist <= 0.0;
+            }
+
+            vec4 blurred(vec2 fragCoord) {
+                const float Pi = 6.28318530718;
+                const float Directions = 16.0;
+                const float Quality = 3.0;
+                float Size = u_blurRadius;
+
+                vec2 Radius = Size / u_resolution;
+                vec2 uv = fragCoord / u_resolution;
+
+                // Map to content canvas coordinates (0-1 range for texture)
+                vec2 contentUV = vec2(uv.x, uv.y * (u_resolution.y / 1800.0));
+
+                vec4 Color = texture2D(u_content, contentUV);
+
+                float sampleCount = 1.0;
+                for (float d = 0.0; d < Pi; d += Pi / Directions) {
+                    for (float i = 1.0 / Quality; i <= 1.0; i += 1.0 / Quality) {
+                        vec2 sampleUV = contentUV + vec2(cos(d), sin(d)) * Radius * i * (u_resolution.y / 1800.0);
+                        Color += texture2D(u_content, sampleUV);
+                        sampleCount += 1.0;
+                    }
+                }
+
+                Color /= sampleCount;
+
+                return Color;
+            }
+
+            void main() {
+                vec2 fragCoord = gl_FragCoord.xy;
+
+                if (!isInsidePanel(fragCoord, u_cornerRadius)) {
+                    vec2 uv = fragCoord / u_resolution;
+                    vec2 contentUV = vec2(uv.x, uv.y * (u_resolution.y / 1800.0));
+                    gl_FragColor = texture2D(u_content, contentUV);
+                    return;
+                }
+
+                vec2 uv = fragCoord / u_resolution;
+
+                vec2 eyeVector = (uv * 2.0) - 1.0;
+                float depth = curve(fragCoord, u_curveParamA, u_curveParamK) * (u_curveParamA / 2.0);
+                vec3 incident = vec3(eyeVector.x * 0.02 + u_tilt.x, -eyeVector.y * 0.001 + depth * 0.2 + u_tilt.y, -1.0);
+                vec3 normal = calculateNormal(fragCoord);
+                float ior = 1.0 / u_refractionIndex;
+
+                float aberationIndex = u_aberrationIndex;
+                float iorR = ior - aberationIndex;
+                float iorG = ior;
+                float iorB = ior + aberationIndex;
+
+                vec2 refractedR = refract(incident, normal, iorR).xy * u_refractionMultiplier;
+                vec2 refractedG = refract(incident, normal, iorG).xy * u_refractionMultiplier;
+                vec2 refractedB = refract(incident, normal, iorB).xy * u_refractionMultiplier;
+
+                float r = blurred((uv + refractedR) * u_resolution).r;
+                float g = blurred((uv + refractedG) * u_resolution).g;
+                float b = blurred((uv + refractedB) * u_resolution).b;
+                float a = blurred((uv + refractedG) * u_resolution).a;
+
+                gl_FragColor = vec4(r, g, b, a);
+            }
+        `;
+
+    function createShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+            gl.deleteShader(shader);
+            return null;
+        }
+
+        return shader;
+    }
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Program link error:', gl.getProgramInfoLog(program));
+    }
+
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1, -1,
+        1, -1,
+        -1,  1,
+        1,  1
+    ]), gl.STATIC_DRAW);
+
+    const positionLocation = gl.getAttribLocation(program, 'a_position');
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+    // Create texture
+    const texture = gl.createTexture();
+
+    function updateTexture() {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); // Flip texture vertically
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, contentCanvas);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        render();
+    }
+
+    const uniforms = {
+        u_content: gl.getUniformLocation(program, 'u_content'),
+        u_refractionIndex: gl.getUniformLocation(program, 'u_refractionIndex'),
+        u_resolution: gl.getUniformLocation(program, 'u_resolution'),
+        u_panelHeight: gl.getUniformLocation(program, 'u_panelHeight'),
+        u_panelWidth: gl.getUniformLocation(program, 'u_panelWidth'),
+        u_panelX: gl.getUniformLocation(program, 'u_panelX'),
+        u_panelY: gl.getUniformLocation(program, 'u_panelY'),
+        u_glassShape: gl.getUniformLocation(program, 'u_glassShape'),
+        u_curveParamA: gl.getUniformLocation(program, 'u_curveParamA'),
+        u_curveParamK: gl.getUniformLocation(program, 'u_curveParamK'),
+        u_aberrationIndex: gl.getUniformLocation(program, 'u_aberrationIndex'),
+        u_blurRadius: gl.getUniformLocation(program, 'u_blurRadius'),
+        u_tilt: gl.getUniformLocation(program, 'u_tilt'),
+        u_cornerRadius: gl.getUniformLocation(program, 'u_cornerRadius'),
+        u_refractionMultiplier: gl.getUniformLocation(program, 'u_refractionMultiplier')
+    };
+
+    function render() {
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        gl.useProgram(program);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(uniforms.u_content, 0);
+
+        const refractionIndex = parseFloat(document.getElementById('refractionIndex').value);
+        const curveParamA = parseFloat(document.getElementById('curveParamA').value);
+        const curveParamK = parseFloat(document.getElementById('curveParamK').value);
+        const aberrationIndex = parseFloat(document.getElementById('aberrationIndex').value);
+        const blurRadius = parseFloat(document.getElementById('blurRadius').value);
+        const cornerRadius = parseFloat(document.getElementById('cornerRadius').value);
+        const refractionMultiplier = parseFloat(document.getElementById('refractionMultiplier').value);
+        const tiltX = parseFloat(document.getElementById('tiltX').value);
+        const tiltY = parseFloat(document.getElementById('tiltY').value);
+        const glassShape = parseInt(document.getElementById('glassShape').value);
+        const panelWidth = parseFloat(document.getElementById('panelWidth').value);
+        const panelHeight = parseFloat(document.getElementById('panelHeight').value);
+
+        gl.uniform1f(uniforms.u_refractionIndex, refractionIndex);
+        gl.uniform2f(uniforms.u_resolution, canvas.width, canvas.height);
+        gl.uniform1f(uniforms.u_panelHeight, panelHeight);
+        gl.uniform1f(uniforms.u_panelWidth, panelWidth);
+        gl.uniform1f(uniforms.u_panelX, (canvas.width - panelWidth) / 2);
+        gl.uniform1f(uniforms.u_panelY, (canvas.height - panelHeight) / 2);
+        gl.uniform1i(uniforms.u_glassShape, glassShape);
+        gl.uniform1f(uniforms.u_curveParamA, curveParamA);
+        gl.uniform1f(uniforms.u_curveParamK, curveParamK);
+        gl.uniform1f(uniforms.u_aberrationIndex, aberrationIndex);
+        gl.uniform1f(uniforms.u_blurRadius, blurRadius);
+        gl.uniform2f(uniforms.u_tilt, tiltX, tiltY);
+        gl.uniform1f(uniforms.u_cornerRadius, cornerRadius);
+        gl.uniform1f(uniforms.u_refractionMultiplier, refractionMultiplier);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    // Setup controls
+    const controls = {
+        'refractionIndex': 'refractionValue',
+        'curveParamA': 'curveAValue',
+        'curveParamK': 'curveKValue',
+        'aberrationIndex': 'aberrationValue',
+        'blurRadius': 'blurValue',
+        'cornerRadius': 'cornerValue',
+        'refractionMultiplier': 'refractMultValue',
+        'tiltX': 'tiltXValue',
+        'tiltY': 'tiltYValue',
+        'panelWidth': 'widthValue',
+        'panelHeight': 'heightValue'
+    };
+
+    for (const [controlId, valueId] of Object.entries(controls)) {
+        const control = document.getElementById(controlId);
+        const valueSpan = document.getElementById(valueId);
+        control.addEventListener('input', function() {
+            valueSpan.textContent = parseFloat(this.value).toFixed(2);
+            render();
+        });
+    }
+
+    document.getElementById('glassShape').addEventListener('change', render);
+
+    // Scroll control
+    const scrollControl = document.getElementById('scrollPosition');
+    const scrollValue = document.getElementById('scrollValue');
+
+    scrollControl.addEventListener('input', function() {
+        const scrollY = parseFloat(this.value);
+        scrollValue.textContent = Math.round(scrollY);
+        renderContentToCanvas(scrollY);
+    });
+
+    // Initial render
+    renderContentToCanvas(0);
+</script>
+</body>
+</html>
