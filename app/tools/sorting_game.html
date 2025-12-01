@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Color Tower Puzzle</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+        :root {
+            --ring-height: 24px;
+            --peg-width: 60px;
+            --peg-gap: 10px;
+            --max-height: 7; /* колец на стержень */
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #d6b58a;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            color: #222;
+            touch-action: manipulation;
+        }
+
+        header {
+            padding: 10px 12px 4px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        header button {
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: none;
+            background: #444;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        header button:active {
+            transform: scale(0.96);
+        }
+
+        #message {
+            font-size: 13px;
+            flex: 1;
+        }
+
+        #game {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        #pegs {
+            display: flex;
+            gap: var(--peg-gap);
+            align-items: flex-end;
+            justify-content: center;
+            max-width: 100%;
+        }
+
+        .peg {
+            position: relative;
+            width: var(--peg-width);
+            height: calc(var(--ring-height) * (var(--max-height) + 2));
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            padding-bottom: 8px;
+            border-radius: 999px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .peg::before {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            width: 70%;
+            height: 10px;
+            background: rgba(0,0,0,0.25);
+            border-radius: 999px;
+            filter: blur(2px);
+            z-index: 0;
+        }
+
+        .peg-rod {
+            position: absolute;
+            bottom: 10px;
+            width: 12px;
+            height: calc(100% - 28px);
+            background: #c0c0c0;
+            border-radius: 999px;
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.5),
+            inset 0 0 0 1px rgba(0,0,0,0.2);
+            z-index: 0;
+        }
+
+        .peg-inner {
+            position: absolute;
+            bottom: 10px;
+            height: calc(100% - 28px);
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 2px;
+            z-index: 1;
+        }
+
+        .ring {
+            width: 46px;
+            height: var(--ring-height);
+            border-radius: 12px;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.6),
+            0 2px 0 rgba(0,0,0,0.35);
+        }
+
+        .peg.selected .peg-rod {
+            box-shadow:
+                    0 0 0 4px rgba(255,255,255,0.7),
+                    0 0 14px 2px #fff,
+                    inset 0 0 0 2px rgba(255,255,255,0.5);
+        }
+
+        .peg.invalid .peg-rod {
+            animation: shake 0.18s linear 1;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            50% { transform: translateX(3px); }
+            75% { transform: translateX(-2px); }
+            100% { transform: translateX(0); }
+        }
+
+        @media (max-width: 600px) {
+            :root {
+                --ring-height: 20px;
+                --peg-width: 46px;
+                --peg-gap: 6px;
+            }
+        }
+
+        @keyframes lift {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-6px); }
+        }
+        .peg.selected .peg-inner .ring:last-child {
+            animation: lift 0.3s ease-in-out infinite alternate;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div id="message">Нажми на столбик, потом на другой, чтобы перенести кольца.</div>
+    <button id="hintBtn">💡 Подсказка</button>
+    <button id="undoBtn">↶ Отменить</button>
+    <button id="resetBtn">⟲ Перезапуск</button>
+</header>
+
+<div id="game">
+    <div id="pegs"></div>
+</div>
+
+<script>
+    const NUM_PEGS = 7;
+    const MAX_HEIGHT = 7; // колец на стержень
+    const COLORS = ["#f44336","#ff9800","#ffc107","#4caf50","#2196f3","#9c27b0"];
+
+    let state = [];
+    let selectedPeg = null;
+    let history = []; // стек состояний для undo
+
+    const pegsContainer = document.getElementById("pegs");
+    const messageEl = document.getElementById("message");
+    const resetBtn = document.getElementById("resetBtn");
+    const hintBtn = document.getElementById("hintBtn");
+    const undoBtn = document.getElementById("undoBtn");
+
+    resetBtn.addEventListener("click", () => {
+        initGame();
+        render();
+    });
+
+    hintBtn.addEventListener("click", () => {
+        const h = findHint();
+        if (!h) {
+            openModal("Подсказок нет — ходов больше нет!");
+        } else {
+            openModal(`Попробуй переместить со столбика ${h.from + 1} на столбик ${h.to + 1}`);
+        }
+    });
+
+    undoBtn.addEventListener("click", () => {
+        undo();
+        render();
+    });
+
+    function deepCopyState(s) {
+        return s.map(peg => peg.map(r => ({ color: r.color })));
+    }
+
+    function pushHistory() {
+        history.push(deepCopyState(state));
+        if (history.length > 200) history.shift();
+    }
+
+    function undo() {
+        if (!history.length) return;
+        state = history.pop();
+        selectedPeg = null;
+        messageEl.textContent = "Ход отменён.";
+    }
+
+    function initGame() {
+        selectedPeg = null;
+        history = [];
+        messageEl.textContent = "Нажми на столбик, потом на другой, чтобы перенести кольца.";
+
+        const totalSlots = (NUM_PEGS - 2) * MAX_HEIGHT;
+        let ringsPool = [];
+        for (let i = 0; i < totalSlots; i++) {
+            ringsPool.push({ color: COLORS[i % COLORS.length] });
+        }
+        for (let i = ringsPool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [ringsPool[i], ringsPool[j]] = [ringsPool[j], ringsPool[i]];
+        }
+
+        state = Array.from({ length: NUM_PEGS }, () => []);
+        let idx = 0;
+        for (let p = 0; p < NUM_PEGS; p++) {
+            if (p >= NUM_PEGS - 2) continue; // два пустых столбика
+            for (let h = 0; h < MAX_HEIGHT; h++) {
+                state[p].push(ringsPool[idx++]);
+            }
+        }
+
+        pushHistory();
+    }
+
+    function render() {
+        pegsContainer.innerHTML = "";
+        state.forEach((peg, i) => {
+            const pegEl = document.createElement("div");
+            pegEl.className = "peg";
+            pegEl.dataset.index = i;
+
+            const rod = document.createElement("div");
+            rod.className = "peg-rod";
+            rod.style.left = "50%";
+            rod.style.transform = "translateX(-50%)";
+            pegEl.appendChild(rod);
+
+            const inner = document.createElement("div");
+            inner.className = "peg-inner";
+            inner.style.left = "50%";
+            inner.style.transform = "translateX(-50%)";
+            pegEl.appendChild(inner);
+
+            peg.forEach(ring => {
+                const ringEl = document.createElement("div");
+                ringEl.className = "ring";
+                ringEl.style.background = ring.color;
+                inner.appendChild(ringEl);
+            });
+
+            if (selectedPeg === i) pegEl.classList.add("selected");
+
+            pegEl.addEventListener("click", () => handlePegTap(i));
+            pegsContainer.appendChild(pegEl);
+        });
+    }
+
+    function handlePegTap(index) {
+        if (selectedPeg === null) {
+            if (state[index].length === 0) {
+                blinkInvalid(index);
+                return;
+            }
+            selectedPeg = index;
+            render();
+        } else if (selectedPeg === index) {
+            selectedPeg = null;
+            render();
+        } else {
+            const from = selectedPeg;
+            const to = index;
+            const moved = tryMove(from, to);
+            selectedPeg = null;
+            render();
+            if (moved) {
+                pushHistory();
+                if (checkWin()) {
+                    messageEl.textContent = "Победа! Все башни аккуратно отсортированы.";
+                } else if (isDeadlocked()) {
+                    messageEl.textContent = "Похоже, дедлок: ни одного доступного хода.";
+                } else {
+                    messageEl.textContent = "Ход сделан.";
+                }
+            } else {
+                blinkInvalid(to);
+            }
+        }
+    }
+
+    // перенос блока одинаковых по цвету колец
+    function tryMove(from, to) {
+        const source = state[from];
+        const target = state[to];
+        if (!source.length) return false;
+
+        const topColor = source[source.length - 1].color;
+
+        let blockSize = 1;
+        for (let i = source.length - 2; i >= 0; i--) {
+            if (source[i].color === topColor) blockSize++;
+            else break;
+        }
+
+        if (target.length > 0) {
+            const targetTopColor = target[target.length - 1].color;
+            if (targetTopColor !== topColor) return false;
+        }
+        if (target.length + blockSize > MAX_HEIGHT) return false;
+
+        const moving = source.splice(source.length - blockSize, blockSize);
+        state[to].push(...moving);
+        return true;
+    }
+
+    function blinkInvalid(index) {
+        const pegEl = pegsContainer.children[index];
+        if (!pegEl) return;
+        pegEl.classList.add("invalid");
+        setTimeout(() => pegEl.classList.remove("invalid"), 200);
+    }
+
+    function checkWin() {
+        const completeStacks = state.filter(
+            peg => peg.length > 0 && peg.length <= MAX_HEIGHT && peg.every(r => r.color === peg[0].color)
+        ).length;
+        return completeStacks >= COLORS.length;
+    }
+
+    function isDeadlocked() {
+        for (let from = 0; from < state.length; from++) {
+            for (let to = 0; to < state.length; to++) {
+                if (from === to) continue;
+                if (canMove(from, to)) return false;
+            }
+        }
+        return true;
+    }
+
+    function canMove(from, to) {
+        const source = state[from];
+        const target = state[to];
+        if (!source.length) return false;
+
+        const topColor = source[source.length - 1].color;
+        let blockSize = 1;
+        for (let i = source.length - 2; i >= 0; i--) {
+            if (source[i].color === topColor) blockSize++;
+            else break;
+        }
+
+        if (target.length > 0) {
+            const targetTopColor = target[target.length - 1].color;
+            if (targetTopColor !== topColor) return false;
+        }
+        if (target.length + blockSize > MAX_HEIGHT) return false;
+
+        return true;
+    }
+
+    function findHint() {
+        for (let from = 0; from < state.length; from++) {
+            for (let to = 0; to < state.length; to++) {
+                if (from === to) continue;
+                if (canMove(from, to)) return { from, to };
+            }
+        }
+        return null;
+    }
+
+    // Инициализация
+    initGame();
+    render();
+</script>
+
+<!-- Modal -->
+<div id="modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:9999;">
+    <div style="background:#fff;padding:20px 30px;border-radius:12px;max-width:300px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+        <div id="modal-text" style="margin-bottom:20px;font-size:18px;font-weight:600;"></div>
+        <button onclick="closeModal()" style="padding:8px 14px;border:none;border-radius:8px;background:#444;color:#fff;">OK</button>
+    </div>
+</div>
+
+<script>
+    function openModal(text) {
+        const el = document.getElementById('modal-text');
+        el.textContent = text;
+        document.getElementById('modal').style.display = 'flex';
+    }
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    // Переопределяем checkWin и isDeadlocked для показа модалок
+    const oldCheckWin = window.checkWin;
+    window.checkWin = function() {
+        const win = oldCheckWin();
+        if (win) openModal('Победа! Отличная сортировка!');
+        return win;
+    };
+
+    const oldIsDeadlocked = window.isDeadlocked;
+    window.isDeadlocked = function() {
+        const d = oldIsDeadlocked();
+        if (d) openModal('Дедлок! Больше нет допустимых ходов.');
+        return d;
+    };
+</script>
+
+</body>
+</html>
