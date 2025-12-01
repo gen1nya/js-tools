@@ -27,8 +27,14 @@
         .lang-btn:hover:not(.active) { background: #ecf0f1; }
         .description { font-size: 1em; color: #555; margin-bottom: 40px; text-align: left; }
         .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px; }
+        .tool-card-pair { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
         .tool-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background: #fafafa; cursor: pointer; transition: all 0.2s ease; text-decoration: none; color: inherit; }
         .tool-card:hover { border-color: #3498db; background: white; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.1); transform: translateY(-2px); }
+        .tool-card--compact { padding: 16px; }
+        .tool-card--dark { background: #0f172a; color: #e5e7eb; border-color: #111827; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); }
+        .tool-card--dark:hover { background: #0b1221; border-color: #1f2937; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); transform: translateY(-2px); }
+        .tool-card--dark .tool-title { color: #f8fafc; }
+        .tool-card--dark .tool-desc { color: #cbd5e1; }
         .tool-icon { font-size: 2em; margin-bottom: 15px; display: block; }
         .tool-title { font-size: 1.2em; font-weight: 600; margin-bottom: 8px; color: #2c3e50; }
         .tool-desc { font-size: 0.9em; color: #666; line-height: 1.4; }
@@ -40,6 +46,7 @@
             .subtitle { font-size: 1em; }
             .tools-grid { grid-template-columns: 1fr; gap: 15px; }
             .tool-card { padding: 15px; }
+            .tool-card-pair { grid-template-columns: 1fr; }
         }
         @media (max-width: 480px) {
             .container { padding: 15px; }
@@ -87,7 +94,8 @@
                 { name: "sorting_game", icon: "🎮", title: "Игра из рекламы", desc: "Переставлять колечки с палки на палку" },
                 { name: "json_validator", icon: "🗄️", title: "Json-бьютификатор", desc: "Форматирует/валидирует JSON" },
                 { name: "image-converter", icon: "🖼️", title: "Конвертер изображений", desc: "Конвертирует изображения в разные форматы и размеры" },
-                { name: "btc_generator", icon: "💰", title: "Генератор BTC кошельков", desc: "Создаёт BTC адреса и ключи. Работает оффлайн. Обновляется при перезагрузке страницы" },
+                { name: "btc_generator", icon: "💰", title: "Дропбокс", desc: "Одноразовые BTC адреса", },
+                { name: "ebatel_wallet", icon: "🖤", title: "Кошелёк", desc: "Нон-кастоди", url: "https://wallet.rus.ebatel.online/", variant: "dark" },
                 { name: "colors", icon: "🎨", title: "Цвета", desc: "Палитры, коды, всё для работы с цветом" },
                 { name: "twitch_iframe", icon: "📺", title: "Айфрейм твича", desc: "Фиолетовый шакал скачать обои" },
                 { name: "qr_generator_reader", icon: "📱", title: "QR коды", desc: "Генерит и читает QR коды" },
@@ -111,7 +119,8 @@
                 { name: "sorting_game", icon: "🎮", title: "Ad Puzzle Game", desc: "Move the rings from one pole to another" },
                 { name: "json_validator", icon: "🗄️", title: "Json-Beautifier", desc: "Formats/validates JSON" },
                 { name: "image-converter", icon: "🖼️", title: "Image Converter", desc: "Converts images to different formats and sizes" },
-                { name: "btc_generator", icon: "💰", title: "BTC Wallet Generator", desc: "Creates BTC addresses and keys. Works offline. Updates on page reload" },
+                { name: "btc_generator", icon: "💰", title: "Dropbox", desc: "One-time BTC addresses" },
+                { name: "ebatel_wallet", icon: "🖤", title: "BTC wallet", desc: "Non-custodial", url: "https://wallet.rus.ebatel.online/", variant: "dark" },
                 { name: "colors", icon: "🎨", title: "Colors", desc: "Palettes, codes, everything for working with color" },
                 { name: "twitch_iframe", icon: "📺", title: "Twitch Iframe", desc: "Purple jackal download wallpapers" },
                 { name: "qr_generator_reader", icon: "📱", title: "QR Codes", desc: "Generates and reads QR codes" },
@@ -134,7 +143,8 @@
                 { name: "sorting_game", icon: "🎮", title: "Παιχνίδι από τη διαφήμιση", desc: "Μετακίνησε τους κρίκους από ένα στύλο σε έναν άλλο" },
                 { name: "json_validator", icon: "🗄️", title: "Διαμορφωτής JSON", desc: "Μορφοποιεί/επικυρώνει JSON" },
                 { name: "image-converter", icon: "🖼️", title: "Μετατροπέας εικόνων", desc: "Μετατρέπει εικόνες σε διαφορετικές μορφές και μεγέθη" },
-                { name: "btc_generator", icon: "💰", title: "Γεννήτρια πορτοφολιών BTC", desc: "Δημιουργεί διευθύνσεις και κλειδιά BTC. Λειτουργεί offline. Ενημερώνεται με την ανανέωση της σελίδας" },
+                { name: "btc_generator", icon: "💰", title: "Dropbox", desc: "One-time BTC διευθύνσεις" },
+                { name: "ebatel_wallet", icon: "🖤", title: "Πορτοφόλι BTC", desc: "Non-custodial", url: "https://wallet.rus.ebatel.online/", variant: "dark" },
                 { name: "colors", icon: "🎨", title: "Χρώματα", desc: "Παλέτες, κωδικοί, όλα για εργασία με το χρώμα" },
                 { name: "twitch_iframe", icon: "📺", title: "Iframe Twitch", desc: "Μωβ τσακάλι λήψη ταπετσαριών" },
                 { name: "qr_generator_reader", icon: "📱", title: "QR κώδικες", desc: "Δημιουργεί και διαβάζει κωδικούς QR" },
@@ -168,15 +178,46 @@
         document.documentElement.lang = lang;
     }
 
-    function renderTools(tools) {
-        const grid = document.getElementById('tools-grid');
-        grid.innerHTML = (tools || []).map(tool => `
-            <a href="tools/${tool.name}.html" class="tool-card">
+    function renderCard(tool, { compact = false } = {}) {
+        const isExternal = /^https?:\/\//.test(tool.url || '');
+        const href = isExternal ? tool.url : `tools/${tool.name}.html`;
+        const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+        const classes = ['tool-card'];
+        if (compact) classes.push('tool-card--compact');
+        if (tool.variant === 'dark') classes.push('tool-card--dark');
+
+        return `
+            <a href="${href}" class="${classes.join(' ')}"${target}>
                 <span class="tool-icon">${tool.icon}</span>
                 <div class="tool-title">${tool.title}</div>
                 <div class="tool-desc">${tool.desc}</div>
             </a>
-        `).join('');
+        `;
+    }
+
+    function renderTools(tools) {
+        const grid = document.getElementById('tools-grid');
+        let html = '';
+
+        for (let i = 0; i < (tools || []).length; i++) {
+            const tool = tools[i];
+            const nextTool = tools[i + 1];
+
+            if (tool?.name === 'btc_generator' && nextTool?.name === 'ebatel_wallet') {
+                html += `
+                    <div class="tool-card-pair">
+                        ${renderCard(tool, { compact: true })}
+                        ${renderCard(nextTool, { compact: true })}
+                    </div>
+                `;
+                i++; // skip partner card, already rendered
+                continue;
+            }
+
+            html += renderCard(tool);
+        }
+
+        grid.innerHTML = html;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
