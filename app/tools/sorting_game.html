@@ -434,19 +434,27 @@
     }
 
     function checkWin() {
-        const seenColors = new Set();
+        const colorCounts = {};
+        const pegsPerColor = (NUM_PEGS - 2) / COLORS.length;
+
         for (const peg of state) {
             if (!peg.length) continue;
 
-            const pegColor = peg[0].color;
-            const uniformPeg = peg.every(r => r.color === pegColor);
-            if (!uniformPeg) return false;
+            // Столбец должен быть полным
+            if (peg.length !== MAX_HEIGHT) return false;
 
-            if (seenColors.has(pegColor)) return false;
-            seenColors.add(pegColor);
+            const pegColor = peg[0].color;
+            // Все кольца должны быть одного цвета
+            if (!peg.every(r => r.color === pegColor)) return false;
+
+            colorCounts[pegColor] = (colorCounts[pegColor] || 0) + 1;
         }
-        // Проверяем, что все используемые цвета собраны
-        return seenColors.size === COLORS.length && seenColors.size > 0;
+
+        // Проверяем, что каждый цвет собран нужное количество раз
+        for (const color of COLORS) {
+            if (colorCounts[color] !== pegsPerColor) return false;
+        }
+        return true;
     }
 
     function isDeadlocked() {
