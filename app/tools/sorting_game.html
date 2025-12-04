@@ -9,7 +9,7 @@
             --ring-height: 24px;
             --peg-width: 60px;
             --peg-gap: 10px;
-            --max-height: 11; /* колец на стержень */
+            --max-height: 10; /* колец на стержень */
         }
 
         * { box-sizing: border-box; }
@@ -151,11 +151,19 @@
             100% { transform: translateX(0); }
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 700px) {
             :root {
                 --ring-height: 18px;
                 --peg-width: 36px;
                 --peg-gap: 4px;
+            }
+        }
+
+        @media (max-width: 500px) {
+            :root {
+                --ring-height: 14px;
+                --peg-width: 28px;
+                --peg-gap: 2px;
             }
         }
 
@@ -195,17 +203,26 @@
 </div>
 
 <script>
-    // Уровни сложности
+    // Уровни сложности: (pegs - 2) / colors = количество столбцов на цвет
     const DIFFICULTY_LEVELS = {
-        easy: { pegs: 7, height: 7, colors: 5 },
-        medium: { pegs: 9, height: 8, colors: 6 },
-        hard: { pegs: 12, height: 9, colors: 6 },
-        extreme: { pegs: 9, height: 11, colors: 7 }
+        easy: { pegs: 7, height: 7, colors: 5 },       // 5 столбцов, 5 цветов, 1 на цвет ✓
+        medium: { pegs: 8, height: 8, colors: 6 },     // 6 столбцов, 6 цветов, 1 на цвет ✓
+        hard: { pegs: 9, height: 9, colors: 7 },       // 7 столбцов, 7 цветов, 1 на цвет ✓
+        extreme: { pegs: 10, height: 10, colors: 8 },  // 8 столбцов, 8 цветов, 1 на цвет ✓
+        insane: { pegs: 14, height: 8, colors: 6 }     // 12 столбцов, 6 цветов, 2 на цвет ✓
     };
 
-    let NUM_PEGS = 9;
-    let MAX_HEIGHT = 11;
-    let COLORS = ["#f44336","#ff9800","#ffc107","#4caf50","#2196f3","#9c27b0","#e0e0e0"];
+    let NUM_PEGS = 10;
+    let MAX_HEIGHT = 10;
+    let COLORS = [
+        "#f44336",
+        "#ff9800",
+        "#ffc107",
+        "#4caf50",
+        "#2196f3",
+        "#9c27b0",
+        "#e0e0e0",
+        "#000000"];
     let currentDifficulty = 'extreme';
 
     let state = [];
@@ -263,7 +280,16 @@
         currentDifficulty = level;
         NUM_PEGS = config.pegs;
         MAX_HEIGHT = config.height;
-        COLORS = ["#f44336","#ff9800","#ffc107","#4caf50","#2196f3","#9c27b0","#e0e0e0"].slice(0, config.colors);
+        COLORS = [
+            "#f44336",
+            "#ff9800",
+            "#ffc107",
+            "#4caf50",
+            "#2196f3",
+            "#9c27b0",
+            "#e0e0e0",
+            "#000000",
+        ].slice(0, config.colors);
 
         // Обновляем CSS переменную для высоты
         document.documentElement.style.setProperty('--max-height', MAX_HEIGHT);
@@ -487,13 +513,16 @@
                 Легко (7 столбцов, 5 цветов)
             </button>
             <button onclick="setDifficulty('medium')" style="padding:14px 20px;border:none;border-radius:8px;background:#ff9800;color:#fff;font-size:16px;cursor:pointer;font-weight:500;">
-                Средне (9 столбцов, 6 цветов)
+                Средне (8 столбцов, 6 цветов)
             </button>
             <button onclick="setDifficulty('hard')" style="padding:14px 20px;border:none;border-radius:8px;background:#f44336;color:#fff;font-size:16px;cursor:pointer;font-weight:500;">
-                Сложно (12 столбцов, 6 цветов)
+                Сложно (9 столбцов, 7 цветов)
             </button>
             <button onclick="setDifficulty('extreme')" style="padding:14px 20px;border:none;border-radius:8px;background:#9c27b0;color:#fff;font-size:16px;cursor:pointer;font-weight:500;">
-                Экстремально (9 столбцов, 7 цветов + белый)
+                Экстремально (10 столбцов, 8 цветов)
+            </button>
+            <button onclick="setDifficulty('insane')" style="padding:14px 20px;border:none;border-radius:8px;background:#212121;color:#fff;font-size:16px;cursor:pointer;font-weight:500;">
+                Безумие (14 столбцов, 6 цветов × 2)
             </button>
         </div>
         <button onclick="closeDifficultyModal()" style="margin-top:16px;padding:8px 14px;border:none;border-radius:8px;background:#999;color:#fff;cursor:pointer;">
