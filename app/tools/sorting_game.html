@@ -9,7 +9,7 @@
             --ring-height: 24px;
             --peg-width: 60px;
             --peg-gap: 10px;
-            --max-height: 7; /* колец на стержень */
+            --max-height: 11; /* колец на стержень */
         }
 
         * { box-sizing: border-box; }
@@ -126,6 +126,12 @@
             0 2px 0 rgba(0,0,0,0.35);
         }
 
+        .ring.white {
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.5),
+            0 1px 0 rgba(255,255,255,0.6),
+            0 2px 0 rgba(0,0,0,0.35);
+        }
+
         .peg.selected .peg-rod {
             box-shadow:
                     0 0 0 4px rgba(255,255,255,0.7),
@@ -147,9 +153,9 @@
 
         @media (max-width: 600px) {
             :root {
-                --ring-height: 20px;
-                --peg-width: 46px;
-                --peg-gap: 6px;
+                --ring-height: 18px;
+                --peg-width: 36px;
+                --peg-gap: 4px;
             }
         }
 
@@ -160,11 +166,25 @@
         .peg.selected .peg-inner .ring:last-child {
             animation: lift 0.3s ease-in-out infinite alternate;
         }
+
+        #difficultyModal button {
+            transition: transform 0.1s, filter 0.1s;
+        }
+
+        #difficultyModal button:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+
+        #difficultyModal button:active {
+            transform: scale(0.98);
+        }
     </style>
 </head>
 <body>
 <header>
     <div id="message">Нажми на столбик, потом на другой, чтобы перенести кольца.</div>
+    <button id="difficultyBtn">⚙️ Сложность</button>
     <button id="hintBtn">💡 Подсказка</button>
     <button id="undoBtn">↶ Отменить</button>
     <button id="resetBtn">⟲ Перезапуск</button>
@@ -175,9 +195,18 @@
 </div>
 
 <script>
-    const NUM_PEGS = 7;
-    const MAX_HEIGHT = 7; // колец на стержень
-    const COLORS = ["#f44336","#ff9800","#ffc107","#4caf50","#2196f3","#9c27b0"];
+    // Уровни сложности
+    const DIFFICULTY_LEVELS = {
+        easy: { pegs: 7, height: 7, colors: 5 },
+        medium: { pegs: 9, height: 8, colors: 6 },
+        hard: { pegs: 12, height: 9, colors: 6 },
+        extreme: { pegs: 9, height: 11, colors: 7 }
+    };
+
+    let NUM_PEGS = 9;
+    let MAX_HEIGHT = 11;
+    let COLORS = ["#f44336","#ff9800","#ffc107","#4caf50","#2196f3","#9c27b0","#e0e0e0"];
+    let currentDifficulty = 'extreme';
 
     let state = [];
     let selectedPeg = null;
@@ -188,10 +217,15 @@
     const resetBtn = document.getElementById("resetBtn");
     const hintBtn = document.getElementById("hintBtn");
     const undoBtn = document.getElementById("undoBtn");
+    const difficultyBtn = document.getElementById("difficultyBtn");
 
     resetBtn.addEventListener("click", () => {
         initGame();
         render();
+    });
+
+    difficultyBtn.addEventListener("click", () => {
+        openDifficultyModal();
     });
 
     hintBtn.addEventListener("click", () => {
@@ -222,6 +256,29 @@
         state = history.pop();
         selectedPeg = null;
         messageEl.textContent = "Ход отменён.";
+    }
+
+    function setDifficulty(level) {
+        const config = DIFFICULTY_LEVELS[level];
+        currentDifficulty = level;
+        NUM_PEGS = config.pegs;
+        MAX_HEIGHT = config.height;
+        COLORS = ["#f44336","#ff9800","#ffc107","#4caf50","#2196f3","#9c27b0","#e0e0e0"].slice(0, config.colors);
+
+        // Обновляем CSS переменную для высоты
+        document.documentElement.style.setProperty('--max-height', MAX_HEIGHT);
+
+        initGame();
+        render();
+        closeDifficultyModal();
+    }
+
+    function openDifficultyModal() {
+        document.getElementById('difficultyModal').style.display = 'flex';
+    }
+
+    function closeDifficultyModal() {
+        document.getElementById('difficultyModal').style.display = 'none';
     }
 
     function initGame() {
@@ -271,6 +328,9 @@
             peg.forEach(ring => {
                 const ringEl = document.createElement("div");
                 ringEl.className = "ring";
+                if (ring.color === "#e0e0e0") {
+                    ringEl.classList.add("white");
+                }
                 ringEl.style.background = ring.color;
                 inner.appendChild(ringEl);
             });
@@ -359,7 +419,8 @@
             if (seenColors.has(pegColor)) return false;
             seenColors.add(pegColor);
         }
-        return seenColors.size === COLORS.length;
+        // Проверяем, что все используемые цвета собраны
+        return seenColors.size === COLORS.length && seenColors.size > 0;
     }
 
     function isDeadlocked() {
@@ -404,6 +465,7 @@
     }
 
     // Инициализация
+    document.documentElement.style.setProperty('--max-height', MAX_HEIGHT);
     initGame();
     render();
 </script>
@@ -413,6 +475,30 @@
     <div style="background:#fff;padding:20px 30px;border-radius:12px;max-width:300px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.4);">
         <div id="modal-text" style="margin-bottom:20px;font-size:18px;font-weight:600;"></div>
         <button onclick="closeModal()" style="padding:8px 14px;border:none;border-radius:8px;background:#444;color:#fff;">OK</button>
+    </div>
+</div>
+
+<!-- Difficulty Modal -->
+<div id="difficultyModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:9999;">
+    <div style="background:#fff;padding:30px;border-radius:12px;max-width:400px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+        <div style="margin-bottom:24px;font-size:20px;font-weight:600;">Выберите сложность</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+            <button onclick="setDifficulty('easy')" style="padding:14px 20px;border:none;border-radius:8px;background:#4caf50;color:#fff;font-size:16px;cursor:pointer;font-weight:500;">
+                Легко (7 столбцов, 5 цветов)
+            </button>
+            <button onclick="setDifficulty('medium')" style="padding:14px 20px;border:none;border-radius:8px;background:#ff9800;color:#fff;font-size:16px;cursor:pointer;font-weight:500;">
+                Средне (9 столбцов, 6 цветов)
+            </button>
+            <button onclick="setDifficulty('hard')" style="padding:14px 20px;border:none;border-radius:8px;background:#f44336;color:#fff;font-size:16px;cursor:pointer;font-weight:500;">
+                Сложно (12 столбцов, 6 цветов)
+            </button>
+            <button onclick="setDifficulty('extreme')" style="padding:14px 20px;border:none;border-radius:8px;background:#9c27b0;color:#fff;font-size:16px;cursor:pointer;font-weight:500;">
+                Экстремально (9 столбцов, 7 цветов + белый)
+            </button>
+        </div>
+        <button onclick="closeDifficultyModal()" style="margin-top:16px;padding:8px 14px;border:none;border-radius:8px;background:#999;color:#fff;cursor:pointer;">
+            Отмена
+        </button>
     </div>
 </div>
 
