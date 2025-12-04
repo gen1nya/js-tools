@@ -212,8 +212,8 @@
         return s.map(peg => peg.map(r => ({ color: r.color })));
     }
 
-    function pushHistory() {
-        history.push(deepCopyState(state));
+    function pushHistory(snapshot = deepCopyState(state)) {
+        history.push(snapshot);
         if (history.length > 200) history.shift();
     }
 
@@ -247,8 +247,6 @@
                 state[p].push(ringsPool[idx++]);
             }
         }
-
-        pushHistory();
     }
 
     function render() {
@@ -298,11 +296,12 @@
         } else {
             const from = selectedPeg;
             const to = index;
+            const prevState = deepCopyState(state);
             const moved = tryMove(from, to);
             selectedPeg = null;
             render();
             if (moved) {
-                pushHistory();
+                pushHistory(prevState);
                 if (checkWin()) {
                     messageEl.textContent = "Победа! Все башни аккуратно отсортированы.";
                 } else if (isDeadlocked()) {
@@ -349,10 +348,18 @@
     }
 
     function checkWin() {
-        const completeStacks = state.filter(
-            peg => peg.length > 0 && peg.length <= MAX_HEIGHT && peg.every(r => r.color === peg[0].color)
-        ).length;
-        return completeStacks >= COLORS.length;
+        const seenColors = new Set();
+        for (const peg of state) {
+            if (!peg.length) continue;
+
+            const pegColor = peg[0].color;
+            const uniformPeg = peg.every(r => r.color === pegColor);
+            if (!uniformPeg) return false;
+
+            if (seenColors.has(pegColor)) return false;
+            seenColors.add(pegColor);
+        }
+        return seenColors.size === COLORS.length;
     }
 
     function isDeadlocked() {
