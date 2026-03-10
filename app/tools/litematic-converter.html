@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Litematic → Schematic</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <link rel="stylesheet" href="../css/common.css">
+    <style>
+        .upload-area {
+            border: 3px dashed var(--color-primary);
+            border-radius: 15px;
+            padding: 50px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            color: var(--text-secondary);
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--color-secondary);
+            background: rgba(102, 126, 234, 0.05);
+            transform: translateY(-2px);
+        }
+
+        [data-theme="dark"] .upload-area:hover,
+        [data-theme="dark"] .upload-area.dragover {
+            background: rgba(102, 126, 234, 0.15);
+        }
+
+        .upload-icon { font-size: 3.5em; margin-bottom: 15px; display: block; }
+
+        .result-panel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .result-panel h3 { margin-bottom: 15px; color: var(--text-primary); }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: var(--bg-container);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .info-label { font-size: 0.8em; color: var(--text-muted); margin-bottom: 4px; }
+        .info-value { font-size: 1.2em; font-weight: 700; color: var(--text-primary); font-family: 'Consolas', monospace; }
+
+        .action-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+
+        .status-msg {
+            margin-top: 15px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .status-msg.success { background: rgba(40, 167, 69, 0.15); border: 1px solid var(--color-success); color: var(--color-success); }
+        .status-msg.error { background: rgba(220, 53, 69, 0.15); border: 1px solid var(--color-error); color: var(--color-error); }
+
+        #fileInput { display: none; }
+    </style>
+</head>
+<body class="body--gradient">
+<div class="container">
+    <h1>Litematic → Schematic</h1>
+
+    <div class="upload-area" id="uploadArea">
+        <span class="upload-icon">🧱</span>
+        <h3>Перетащите .litematic файл сюда или кликните для выбора</h3>
+        <p>Конвертирует в .schem (Sponge Schematic v2)</p>
+        <input type="file" id="fileInput" accept=".litematic">
+    </div>
+
+    <div class="result-panel hidden" id="resultPanel">
+        <h3 id="resultTitle">Результат</h3>
+        <div class="info-grid" id="infoGrid"></div>
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="downloadBtn">💾 Скачать .schem</button>
+            <button class="btn btn-secondary" id="clearBtn">🗑️ Очистить</button>
+        </div>
+        <div id="statusMsg"></div>
+    </div>
+</div>
+
+<script src="../js/theme.js"></script>
+<script src="../js/toolbar.js"></script>
+<script>
+    // ─── NBT Tag Types ───
+    const TAG = { End:0, Byte:1, Short:2, Int:3, Long:4, Float:5, Double:6,
+                  ByteArray:7, String:8, List:9, Compound:10, IntArray:11, LongArray:12 };
+
+    // ─── NBT Reader ───
+    class NBTReader {
+        constructor(data) {
+            this.data = data;
+            this.view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+            this.pos = 0;
+        }
+        readByte()   { return this.view.getInt8(this.pos++); }
+        readUByte()  { return this.view.getUint8(this.pos++); }
+        readShort()  { const v = this.view.getInt16(this.pos); this.pos += 2; return v; }
+        readUShort() { const v = this.view.getUint16(this.pos); this.pos += 2; return v; }
+        readInt()    { const v = this.view.getInt32(this.pos); this.pos += 4; return v; }
+        readLong()   { const v = this.view.getBigInt64(this.pos); this.pos += 8; return v; }
+        readFloat()  { const v = this.view.getFloat32(this.pos); this.pos += 4; return v; }
+        readDouble() { const v = this.view.getFloat64(this.pos); this.pos += 8; return v; }
+        readString() {
+            const len = this.readUShort();
+            const bytes = this.data.subarray(this.pos, this.pos + len);
+            this.pos += len;
+            return new TextDecoder('utf-8').decode(bytes);
+        }
+        readPayload(type) {
+            switch (type) {
+                case TAG.Byte:   return this.readByte();
+                case TAG.Short:  return this.readShort();
+                case TAG.Int:    return this.readInt();
+                case TAG.Long:   return this.readLong();
+                case TAG.Float:  return this.readFloat();
+                case TAG.Double: return this.readDouble();
+                case TAG.ByteArray: {
+                    const n = this.readInt();
+                    const a = new Int8Array(n);
+                    for (let i = 0; i < n; i++) a[i] = this.readByte();
+                    return a;
+                }
+                case TAG.String: return this.readString();
+                case TAG.List: {
+                    const itemType = this.readUByte();
+                    const n = this.readInt();
+                    const items = [];
+                    for (let i = 0; i < n; i++) items.push(this.readPayload(itemType));
+                    return items;
+                }
+                case TAG.Compound: {
+                    const obj = {};
+                    while (true) {
+                        const t = this.readUByte();
+                        if (t === TAG.End) break;
+                        obj[this.readString()] = this.readPayload(t);
+                    }
+                    return obj;
+                }
+                case TAG.IntArray: {
+                    const n = this.readInt();
+                    const a = new Int32Array(n);
+                    for (let i = 0; i < n; i++) a[i] = this.readInt();
+                    return a;
+                }
+                case TAG.LongArray: {
+                    const n = this.readInt();
+                    const a = new BigInt64Array(n);
+                    for (let i = 0; i < n; i++) a[i] = this.readLong();
+                    return a;
+                }
+            }
+        }
+        parse() {
+            const rootType = this.readUByte();
+            this.readString(); // root name
+            return this.readPayload(rootType);
+        }
+    }
+
+    // ─── NBT Writer ───
+    class NBTWriter {
+        constructor() { this.bytes = []; }
+        writeByte(v)  { this.bytes.push(v & 0xFF); }
+        writeShort(v) { this.bytes.push((v >>> 8) & 0xFF, v & 0xFF); }
+        writeInt(v)   { this.bytes.push((v >>> 24) & 0xFF, (v >>> 16) & 0xFF, (v >>> 8) & 0xFF, v & 0xFF); }
+        writeString(s) {
+            const enc = new TextEncoder().encode(s);
+            this.writeShort(enc.length);
+            for (let i = 0; i < enc.length; i++) this.bytes.push(enc[i]);
+        }
+        writePayload(tag) {
+            switch (tag.type) {
+                case TAG.Byte:  this.writeByte(tag.value); break;
+                case TAG.Short: this.writeShort(tag.value); break;
+                case TAG.Int:   this.writeInt(tag.value); break;
+                case TAG.String: this.writeString(tag.value); break;
+                case TAG.ByteArray:
+                    this.writeInt(tag.value.length);
+                    for (let i = 0; i < tag.value.length; i++) this.bytes.push(tag.value[i] & 0xFF);
+                    break;
+                case TAG.IntArray:
+                    this.writeInt(tag.value.length);
+                    for (const v of tag.value) this.writeInt(v);
+                    break;
+                case TAG.Compound:
+                    for (const [name, child] of Object.entries(tag.value)) {
+                        this.writeByte(child.type);
+                        this.writeString(name);
+                        this.writePayload(child);
+                    }
+                    this.writeByte(TAG.End);
+                    break;
+                case TAG.List:
+                    this.writeByte(tag.itemType);
+                    this.writeInt(tag.value.length);
+                    for (const item of tag.value) this.writePayload(item);
+                    break;
+            }
+        }
+        writeRoot(name, compound) {
+            this.writeByte(TAG.Compound);
+            this.writeString(name);
+            this.writePayload(compound);
+            return new Uint8Array(this.bytes);
+        }
+    }
+
+    // ─── Conversion helpers ───
+    function unpackBlockStates(longArray, bitsPerEntry, totalBlocks) {
+        const longs = new Array(longArray.length);
+        for (let i = 0; i < longArray.length; i++) {
+            longs[i] = BigInt.asUintN(64, longArray[i]);
+        }
+        const mask = (1n << BigInt(bitsPerEntry)) - 1n;
+        const result = new Array(totalBlocks);
+        for (let i = 0; i < totalBlocks; i++) {
+            const startBit = i * bitsPerEntry;
+            const longIdx = startBit >> 6;
+            const bitOff = startBit & 63;
+            if (longIdx >= longs.length) { result[i] = 0; continue; }
+            let val = (longs[longIdx] >> BigInt(bitOff)) & mask;
+            if (bitOff + bitsPerEntry > 64 && longIdx + 1 < longs.length) {
+                const rem = 64 - bitOff;
+                val |= (longs[longIdx + 1] & ((1n << BigInt(bitsPerEntry - rem)) - 1n)) << BigInt(rem);
+            }
+            result[i] = Number(val);
+        }
+        return result;
+    }
+
+    function blockStateToString(entry) {
+        const name = entry.Name;
+        const props = entry.Properties;
+        if (props && Object.keys(props).length > 0) {
+            const s = Object.keys(props).sort().map(k => k + '=' + props[k]).join(',');
+            return name + '[' + s + ']';
+        }
+        return name;
+    }
+
+    function encodeVarint(value, out) {
+        do {
+            let b = value & 0x7F;
+            value >>>= 7;
+            if (value !== 0) b |= 0x80;
+            out.push(b);
+        } while (value !== 0);
+    }
+
+    // ─── Main conversion ───
+    function convertLitematic(fileData) {
+        const decompressed = pako.ungzip(new Uint8Array(fileData));
+        const lit = new NBTReader(decompressed).parse();
+
+        const regions = lit.Regions;
+        const regionName = Object.keys(regions)[0];
+        const region = regions[regionName];
+
+        const sx = Math.abs(region.Size.x);
+        const sy = Math.abs(region.Size.y);
+        const sz = Math.abs(region.Size.z);
+        const totalBlocks = sx * sy * sz;
+
+        const paletteList = region.BlockStatePalette;
+        const bitsPerEntry = Math.max(2, Math.ceil(Math.log2(paletteList.length)));
+
+        const blockIndices = unpackBlockStates(region.BlockStates, bitsPerEntry, totalBlocks);
+
+        // Build sponge palette
+        const spongePalette = {};
+        const litToSponge = {};
+        let nextIdx = 0;
+        for (let i = 0; i < paletteList.length; i++) {
+            const str = blockStateToString(paletteList[i]);
+            if (!(str in spongePalette)) spongePalette[str] = nextIdx++;
+            litToSponge[i] = spongePalette[str];
+        }
+
+        // Encode block data as varints
+        const blockData = [];
+        for (let i = 0; i < blockIndices.length; i++) {
+            encodeVarint(litToSponge[blockIndices[i]] ?? 0, blockData);
+        }
+
+        // Build output NBT
+        const paletteCompound = {};
+        for (const [name, idx] of Object.entries(spongePalette)) {
+            paletteCompound[name] = { type: TAG.Int, value: idx };
+        }
+
+        const schematic = {
+            type: TAG.Compound,
+            value: {
+                'Version':       { type: TAG.Int, value: 2 },
+                'DataVersion':   { type: TAG.Int, value: 3465 },
+                'Width':         { type: TAG.Short, value: sx },
+                'Height':        { type: TAG.Short, value: sy },
+                'Length':        { type: TAG.Short, value: sz },
+                'Offset':        { type: TAG.IntArray, value: new Int32Array([0, 0, 0]) },
+                'PaletteMax':    { type: TAG.Int, value: nextIdx },
+                'Palette':       { type: TAG.Compound, value: paletteCompound },
+                'BlockData':     { type: TAG.ByteArray, value: new Uint8Array(blockData) },
+                'BlockEntities': { type: TAG.List, itemType: TAG.Compound, value: [] },
+            }
+        };
+
+        const nbtData = new NBTWriter().writeRoot('Schematic', schematic);
+        const compressed = pako.gzip(nbtData);
+
+        // Count non-air blocks
+        const airIdx = litToSponge[0] ?? 0;
+        let nonAir = 0;
+        for (let i = 0; i < blockIndices.length; i++) {
+            if ((litToSponge[blockIndices[i]] ?? 0) !== airIdx) nonAir++;
+        }
+
+        return {
+            data: compressed,
+            width: sx, height: sy, length: sz,
+            paletteSize: nextIdx,
+            totalBlocks, nonAir, regionName
+        };
+    }
+
+    // ─── UI ───
+    let lastResult = null;
+    let lastFileName = '';
+
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const resultPanel = document.getElementById('resultPanel');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) processFile(file);
+    });
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); });
+
+    document.getElementById('downloadBtn').addEventListener('click', downloadResult);
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        lastResult = null;
+        lastFileName = '';
+        resultPanel.classList.add('hidden');
+        fileInput.value = '';
+        document.getElementById('statusMsg').innerHTML = '';
+    });
+
+    function processFile(file) {
+        if (!file.name.endsWith('.litematic')) {
+            showStatus('error', 'Файл должен быть .litematic');
+            return;
+        }
+        lastFileName = file.name.replace('.litematic', '.schem');
+
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                lastResult = convertLitematic(e.target.result);
+                showResult(lastResult);
+                showStatus('success', 'Конвертация завершена! Файл готов к скачиванию.');
+            } catch (err) {
+                console.error(err);
+                showStatus('error', 'Ошибка конвертации: ' + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function showResult(r) {
+        resultPanel.classList.remove('hidden');
+        document.getElementById('resultTitle').textContent = 'Регион: ' + r.regionName;
+        document.getElementById('infoGrid').innerHTML = [
+            info('Размер', r.width + '×' + r.height + '×' + r.length),
+            info('Всего блоков', r.totalBlocks.toLocaleString()),
+            info('Не воздух', r.nonAir.toLocaleString()),
+            info('Типов блоков', r.paletteSize),
+            info('Размер файла', formatSize(r.data.length)),
+        ].join('');
+    }
+
+    function info(label, value) {
+        return '<div class="info-item"><div class="info-label">' + label + '</div><div class="info-value">' + value + '</div></div>';
+    }
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function downloadResult() {
+        if (!lastResult) return;
+        const blob = new Blob([lastResult.data], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = lastFileName;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function showStatus(type, msg) {
+        document.getElementById('statusMsg').innerHTML = '<div class="status-msg ' + type + '">' + msg + '</div>';
+    }
+</script>
+</body>
+</html>
