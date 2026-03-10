@@ -4,35 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Color Palette Studio</title>
+    <link rel="stylesheet" href="../css/common.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
         .container {
             max-width: 1400px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
 
         h1 {
             text-align: center;
-            color: #333;
             margin-bottom: 30px;
             font-size: 2.5em;
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: var(--gradient-primary);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -46,10 +28,11 @@
         }
 
         .color-wheel-section {
-            background: #fff;
+            background: var(--bg-container);
             border-radius: 15px;
             padding: 25px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
         }
 
         .color-wheel-container {
@@ -105,37 +88,22 @@
             margin-bottom: 20px;
         }
 
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-        }
-
         .btn-secondary {
-            background: #f8f9fa;
-            color: #333;
-            border: 1px solid #ddd;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        .copy-btn.copied {
+            background: #6c757d;
         }
 
         .converters-section {
-            background: #fff;
+            background: var(--bg-container);
             border-radius: 15px;
             padding: 25px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
         }
 
         .converter-group {
@@ -144,7 +112,7 @@
 
         .converter-group h3 {
             margin-bottom: 15px;
-            color: #333;
+            color: var(--text-primary);
             font-size: 1.2em;
         }
 
@@ -158,13 +126,13 @@
 
         .input-label {
             font-weight: 500;
-            color: #555;
+            color: var(--text-secondary);
             text-align: right;
         }
 
         .color-input {
             padding: 8px 12px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border-color);
             border-radius: 8px;
             font-size: 14px;
             transition: border-color 0.3s ease;
@@ -172,36 +140,17 @@
 
         .color-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--color-primary);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .copy-btn {
-            padding: 6px 12px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .copy-btn:hover {
-            background: #218838;
-            transform: translateY(-1px);
-        }
-
-        .copy-btn.copied {
-            background: #6c757d;
-        }
-
         .palette-section {
-            background: #fff;
+            background: var(--bg-container);
             border-radius: 15px;
             padding: 25px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             margin-bottom: 30px;
+            border: 1px solid var(--border-color);
         }
 
         .palette-container {
@@ -231,7 +180,7 @@
             left: 50%;
             transform: translateX(-50%);
             font-size: 10px;
-            color: #666;
+            color: var(--text-muted);
             white-space: nowrap;
         }
 
@@ -242,17 +191,18 @@
         }
 
         .tool-card {
-            background: #fff;
+            background: var(--bg-container);
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
         }
 
         .tool-card h3 {
             margin-bottom: 15px;
-            color: #333;
+            color: var(--text-primary);
             font-size: 1.1em;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid var(--border-color);
             padding-bottom: 10px;
         }
 
@@ -260,7 +210,7 @@
             height: 60px;
             border-radius: 8px;
             margin: 10px 0;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
         }
 
         .scheme-preview {
@@ -288,7 +238,7 @@
         .select-input {
             width: 100%;
             padding: 8px 12px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border-color);
             border-radius: 8px;
             font-size: 14px;
             margin-bottom: 10px;
@@ -298,7 +248,7 @@
             width: 60px;
             height: 60px;
             border-radius: 12px;
-            border: 3px solid #fff;
+            border: 3px solid var(--border-color);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             margin: 0 auto 15px;
             cursor: pointer;
@@ -329,7 +279,7 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #28a745;
+            background: var(--color-success);
             color: white;
             padding: 12px 20px;
             border-radius: 8px;
@@ -352,7 +302,7 @@
             width: 60px;
             height: 60px;
             border-radius: 12px;
-            border: 3px solid #fff;
+            border: 3px solid var(--border-color);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             cursor: pointer;
             margin: 0 auto 8px;
@@ -378,18 +328,18 @@
 
         .color-label {
             font-size: 12px;
-            color: #666;
+            color: var(--text-muted);
             font-family: monospace;
         }
     </style>
 </head>
-<body>
+<body class="body--gradient">
 <div class="container">
-    <h1>🎨 Color Palette Studio</h1>
+    <h1 style="margin-bottom:30px;">🎨 Color Palette Studio</h1>
 
     <div class="main-content">
         <div class="color-wheel-section">
-            <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Цветовое кольцо</h2>
+            <h2 style="text-align: center; margin-bottom: 20px; color: var(--text-primary);">Цветовое кольцо</h2>
             <div class="color-wheel-container">
                 <canvas id="colorWheel" width="350" height="350"></canvas>
             </div>
@@ -404,13 +354,13 @@
                 <div class="color-picker-wrapper">
                     <div class="current-color-preview" id="currentColorPreview"></div>
                     <input type="color" class="hidden-color-input" id="activeColorPicker" value="#FF5733">
-                    <p style="color: #666; font-size: 14px;">Активный цвет</p>
+                    <p style="color: var(--text-muted); font-size: 14px;">Активный цвет</p>
                 </div>
             </div>
         </div>
 
         <div class="converters-section">
-            <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Конвертер цветов</h2>
+            <h2 style="text-align: center; margin-bottom: 20px; color: var(--text-primary);">Конвертер цветов</h2>
 
             <div class="converter-group">
                 <h3>Основные форматы</h3>
@@ -463,7 +413,7 @@
     </div>
 
     <div class="palette-section">
-        <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Текущая палитра</h2>
+        <h2 style="text-align: center; margin-bottom: 20px; color: var(--text-primary);">Текущая палитра</h2>
         <div class="palette-container" id="paletteContainer"></div>
         <div style="text-align: center;">
             <button class="btn btn-primary" onclick="exportPalette()">Экспорт JSON</button>
@@ -534,6 +484,8 @@
 
 <div class="notification" id="notification"></div>
 
+<script src="../js/theme.js"></script>
+<script src="../js/toolbar.js"></script>
 <script>
     class ColorStudio {
         constructor() {

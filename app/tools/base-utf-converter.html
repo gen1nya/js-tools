@@ -4,36 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Конвертер Base64/Base58</title>
+    <link rel="stylesheet" href="../css/common.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-        }
-
         h1 {
             text-align: center;
-            color: #333;
             margin-bottom: 30px;
             font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .converter-grid {
@@ -51,7 +27,7 @@
 
         label {
             font-weight: 600;
-            color: #555;
+            color: var(--text-secondary);
             font-size: 1.1em;
             display: flex;
             align-items: center;
@@ -59,7 +35,7 @@
         }
 
         .format-badge {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: var(--gradient-primary);
             color: white;
             padding: 4px 12px;
             border-radius: 15px;
@@ -68,23 +44,15 @@
         }
 
         textarea {
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 1em;
             font-family: 'Courier New', monospace;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.8);
             min-height: 80px;
             resize: vertical;
             word-break: break-all;
+            background: rgba(255, 255, 255, 0.8);
         }
 
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
-            transform: translateY(-2px);
+        [data-theme="dark"] textarea {
+            background: rgba(17, 24, 39, 0.8);
         }
 
         .utf8-textarea {
@@ -93,7 +61,7 @@
         }
 
         .clear-btn {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            background: var(--color-error);
             color: white;
             border: none;
             padding: 12px 25px;
@@ -108,11 +76,11 @@
 
         .clear-btn:hover {
             transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(238, 90, 36, 0.4);
+            box-shadow: 0 10px 20px rgba(220, 53, 69, 0.4);
         }
 
         .info-panel {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--gradient-primary);
             color: white;
             padding: 20px;
             border-radius: 15px;
@@ -147,9 +115,9 @@
         }
 
         .error-message {
-            background: rgba(231, 76, 60, 0.2);
-            border: 1px solid #e74c3c;
-            color: #c0392b;
+            background: rgba(220, 53, 69, 0.15);
+            border: 1px solid var(--color-error);
+            color: var(--color-error);
             padding: 10px 15px;
             border-radius: 8px;
             margin-top: 5px;
@@ -158,9 +126,9 @@
         }
 
         .success-message {
-            background: rgba(46, 204, 113, 0.2);
-            border: 1px solid #2ecc71;
-            color: #27ae60;
+            background: rgba(40, 167, 69, 0.15);
+            border: 1px solid var(--color-success);
+            color: var(--color-success);
             padding: 10px 15px;
             border-radius: 8px;
             margin-top: 5px;
@@ -169,8 +137,8 @@
         }
 
         .alphabet-info {
-            background: rgba(52, 152, 219, 0.1);
-            border: 1px solid #3498db;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid var(--accent);
             padding: 15px;
             border-radius: 10px;
             margin-top: 20px;
@@ -179,20 +147,15 @@
 
         .alphabet-chars {
             font-family: 'Courier New', monospace;
-            background: rgba(52, 152, 219, 0.1);
+            background: rgba(102, 126, 234, 0.1);
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 8px;
             margin-top: 10px;
             word-break: break-all;
             line-height: 1.5;
         }
 
         @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-                margin: 10px;
-            }
-
             h1 {
                 font-size: 2em;
             }
@@ -203,7 +166,7 @@
         }
     </style>
 </head>
-<body>
+<body class="body--gradient">
 <div class="container">
     <h1>🔄 Конвертер Base64/Base58</h1>
 
@@ -283,6 +246,8 @@
     </div>
 </div>
 
+<script src="../js/theme.js"></script>
+<script src="../js/toolbar.js"></script>
 <script>
     let isUpdating = false;
 

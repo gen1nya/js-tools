@@ -6,47 +6,28 @@
     <title>Bitcoin Wallet Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/elliptic/6.5.4/elliptic.min.js"></script>
+    <link rel="stylesheet" href="../css/common.css">
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
-        }
-
         .container {
             max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
+            overflow: hidden;
         }
 
         .header {
             text-align: center;
             margin-bottom: 40px;
             padding-bottom: 20px;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid var(--color-primary);
         }
 
         .header h1 {
-            color: #667eea;
+            color: var(--color-primary);
             font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .header p {
-            color: #666;
+            color: var(--text-muted);
             font-size: 1.1em;
         }
 
@@ -55,7 +36,7 @@
             width: 200px;
             margin: 0 auto 40px auto;
             padding: 15px 30px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: var(--gradient-primary);
             color: white;
             border: none;
             border-radius: 50px;
@@ -85,40 +66,41 @@
         }
 
         .wallet-card {
-            background: white;
+            background: var(--bg-container);
             border-radius: 15px;
             padding: 25px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            border: 2px solid #f0f0f0;
+            border: 2px solid var(--border-color);
             transition: all 0.3s ease;
         }
 
         .wallet-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 20px 35px rgba(0, 0, 0, 0.15);
-            border-color: #667eea;
+            border-color: var(--color-primary);
         }
 
         .wallet-title {
             font-size: 1.4em;
-            color: #667eea;
+            color: var(--color-primary);
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid var(--color-primary);
             font-weight: bold;
         }
 
         .key-section {
             margin-bottom: 25px;
             padding: 15px;
-            background: #f8f9ff;
+            background: var(--bg-card);
             border-radius: 10px;
-            border-left: 4px solid #667eea;
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--color-primary);
         }
 
         .key-label {
             font-weight: bold;
-            color: #555;
+            color: var(--text-secondary);
             margin-bottom: 8px;
             font-size: 1em;
         }
@@ -127,11 +109,11 @@
             word-break: break-all;
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
-            background: white;
+            background: var(--bg-card);
             padding: 10px;
             border-radius: 8px;
-            border: 1px solid #ddd;
-            color: #333;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
             line-height: 1.4;
         }
 
@@ -141,8 +123,7 @@
         }
 
         .qr-code {
-
-            background: white;
+            background: var(--bg-card);
             padding: 10px;
             border-radius: 10px;
             display: inline-block;
@@ -150,13 +131,13 @@
         }
 
         .warning {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            background: var(--color-error);
             color: white;
             padding: 20px;
             border-radius: 15px;
             margin-bottom: 30px;
             text-align: center;
-            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.3);
+            box-shadow: 0 10px 25px rgba(220, 53, 69, 0.3);
         }
 
         .warning h3 {
@@ -188,7 +169,7 @@
         }
     </style>
 </head>
-<body>
+<body class="body--gradient">
 <div class="container">
     <div class="header">
         <h1>🔐 Bitcoin Wallet Generator</h1>
@@ -210,6 +191,8 @@
     </div>
 </div>
 
+<script src="../js/theme.js"></script>
+<script src="../js/toolbar.js"></script>
 <script>
     // Secure random bytes generation
     function generateSecureRandom(length) {
@@ -386,8 +369,13 @@
         const container = document.getElementById(containerId);
         const qrImg = document.createElement('img');
 
+        // Read theme colors from CSS variables
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const bgColor = isDark ? '111827' : 'ffffff';
+        const fgColor = isDark ? 'e5e7eb' : '000000';
+
         // Use free API for QR code generation
-        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(text)}&bgcolor=ffffff&color=000000&margin=10`;
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(text)}&bgcolor=${bgColor}&color=${fgColor}&margin=10`;
         qrImg.alt = 'QR Code';
         qrImg.className = 'qr-code';
         qrImg.style.maxWidth = '150px';
@@ -399,14 +387,14 @@
                     <div style="
                         width: 150px;
                         height: 150px;
-                        border: 2px dashed #ccc;
+                        border: 2px dashed var(--border-color);
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         text-align: center;
                         font-size: 12px;
-                        color: #666;
-                        background: #f9f9f9;
+                        color: var(--text-muted);
+                        background: var(--bg-card);
                         border-radius: 8px;
                     ">
                         QR code<br>unavailable<br><small>(data preserved)</small>

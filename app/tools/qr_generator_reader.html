@@ -6,24 +6,16 @@
     <title>QR Code Generator & Reader</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <link rel="stylesheet" href="../css/common.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-
         .container {
             max-width: 900px;
             margin: 0 auto;
             padding: 20px;
+            background: none;
+            box-shadow: none;
+            backdrop-filter: none;
+            border-radius: 0;
         }
 
         .header {
@@ -35,7 +27,7 @@
         .header h1 {
             font-size: 3rem;
             margin-bottom: 10px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            color: white;
         }
 
         .header p {
@@ -57,24 +49,24 @@
         }
 
         .tool-card {
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--bg-container);
             backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: var(--shadow-heavy);
+            border: 1px solid var(--border-color);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .tool-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
         }
 
         .tool-title {
             font-size: 1.5rem;
             margin-bottom: 20px;
-            color: #5a67d8;
+            color: var(--color-primary);
             display: flex;
             align-items: center;
             gap: 10px;
@@ -92,23 +84,11 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #4a5568;
+            color: var(--text-secondary);
         }
 
         .input-group input, .input-group textarea, .input-group select {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1rem;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-            background: white;
-        }
-
-        .input-group input:focus, .input-group textarea:focus, .input-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .input-group textarea {
@@ -116,46 +96,22 @@
             min-height: 80px;
         }
 
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
         .btn-secondary {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.3);
+            background: var(--color-success);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
         }
 
         .btn-secondary:hover {
-            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
         }
 
         .qr-display {
             text-align: center;
             margin-top: 20px;
             padding: 20px;
-            background: #f7fafc;
+            background: var(--bg-card);
             border-radius: 15px;
-            border: 2px dashed #cbd5e0;
+            border: 2px dashed var(--border-color);
         }
 
         .qr-display canvas {
@@ -166,7 +122,7 @@
         }
 
         .qr-display.empty {
-            color: #a0aec0;
+            color: var(--text-muted);
             font-style: italic;
         }
 
@@ -181,8 +137,8 @@
             max-width: 300px;
             height: 200px;
             border-radius: 15px;
-            border: 3px solid #667eea;
-            background: #f7fafc;
+            border: 3px solid var(--color-primary);
+            background: var(--bg-card);
             object-fit: cover;
         }
 
@@ -190,14 +146,15 @@
             margin-top: 20px;
             padding: 15px;
             border-radius: 10px;
-            background: #f0fff4;
-            border: 2px solid #9ae6b4;
+            background: rgba(40, 167, 69, 0.1);
+            border: 2px solid var(--color-success);
+            color: var(--text-primary);
             word-break: break-all;
         }
 
         .result-box.error {
-            background: #fed7d7;
-            border-color: #fc8181;
+            background: rgba(220, 53, 69, 0.1);
+            border-color: var(--color-error);
         }
 
         .settings-row {
@@ -214,18 +171,18 @@
 
         .download-btn {
             margin-top: 15px;
-            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+            background: var(--color-success);
         }
 
         .status {
             text-align: center;
             margin-top: 10px;
             font-size: 0.9rem;
-            color: #666;
+            color: var(--text-muted);
         }
     </style>
 </head>
-<body>
+<body class="body--gradient">
 <div class="container">
     <div class="header">
         <h1>📱 QR Tools</h1>
@@ -287,7 +244,7 @@
                 Сканер QR кодов
             </h2>
 
-            <div style="background: #e6fffa; border: 1px solid #81e6d9; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 0.9rem;">
+            <div class="status-info" style="font-size: 0.9rem; margin-bottom: 15px;">
                 <strong>💡 Совет:</strong> Для лучшей работы камеры откройте страницу в полноценном браузере (Safari, Chrome)
             </div>
 
@@ -303,7 +260,7 @@
             <div class="input-group" style="margin-top: 20px;">
                 <label for="file-input">Или загрузите изображение с QR кодом:</label>
                 <input type="file" id="file-input" accept="image/*" onchange="readQRFromFile(event)">
-                <small style="color: #666; font-size: 0.8rem;">Поддерживаются: JPG, PNG, WebP и другие форматы изображений</small>
+                <small style="color: var(--text-muted); font-size: 0.8rem;">Поддерживаются: JPG, PNG, WebP и другие форматы изображений</small>
             </div>
 
             <div id="scan-result" style="display: none;"></div>
@@ -311,6 +268,8 @@
     </div>
 </div>
 
+<script src="../js/theme.js"></script>
+<script src="../js/toolbar.js"></script>
 <script>
     let html5QrCode = null;
     let isScanning = false;
@@ -342,10 +301,10 @@
     function showEnvironmentWarning() {
         const warningDiv = document.createElement('div');
         warningDiv.innerHTML = `
-                <div style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); color: white; padding: 15px; border-radius: 10px; margin: 20px 0; text-align: center;">
+                <div style="background: var(--color-warning); color: #333; padding: 15px; border-radius: 10px; margin: 20px 0; text-align: center;">
                     <strong>📱 Ограничения iOS</strong><br>
                     Сканер QR кодов может не работать во встроенном браузере<br>
-                    <button onclick="openInSafari()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 8px 15px; border-radius: 5px; margin-top: 8px; cursor: pointer;">
+                    <button onclick="openInSafari()" style="background: rgba(0,0,0,0.1); color: #333; border: 1px solid rgba(0,0,0,0.2); padding: 8px 15px; border-radius: 8px; margin-top: 8px; cursor: pointer;">
                         Открыть в Safari
                     </button>
                 </div>
@@ -373,7 +332,7 @@
             console.warn('Проблемы с библиотеками:', status.join(', '));
             document.getElementById('library-status').style.display = 'block';
             document.getElementById('library-status').innerHTML =
-                '<div style="background: #fed7d7; color: #c53030; padding: 15px; border-radius: 10px; margin: 20px 0; text-align: center;">' +
+                '<div class="status-error" style="margin: 20px 0; text-align: center;">' +
                 '<strong>⚠️ Проблема с загрузкой:</strong><br>' + status.join('<br>') +
                 '<br><small>Попробуйте обновить страницу</small></div>';
         }
@@ -617,7 +576,7 @@
         resultDiv.innerHTML = `
                 <strong>Изображение загружено:</strong><br>
                 <img src="${imageSrc}" style="max-width: 200px; max-height: 200px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"><br>
-                <div style="color: #666; font-size: 0.9rem;">Анализируем QR код...</div>
+                <div style="color: var(--text-muted); font-size: 0.9rem;">Анализируем QR код...</div>
             `;
     }
 
@@ -780,7 +739,7 @@
             if (isUrl) {
                 resultDiv.innerHTML = `
                         <strong>Найдена ссылка:</strong><br>
-                        <a href="${data}" target="_blank" style="color: #667eea; text-decoration: none; word-break: break-all;">${data}</a>
+                        <a href="${data}" target="_blank" style="color: var(--color-primary); text-decoration: none; word-break: break-all;">${data}</a>
                         <br><br>
                         <button class="btn" onclick="copyToClipboard(\`${data.replace(/`/g, '\\`')}\`)">Копировать</button>
                     `;
@@ -839,11 +798,11 @@
         const button = event.target;
         const originalText = button.textContent;
         button.textContent = 'Скопировано!';
-        button.style.background = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)';
+        button.style.background = 'var(--color-success)';
 
         setTimeout(() => {
             button.textContent = originalText;
-            button.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            button.style.background = '';
         }, 2000);
     }
 
