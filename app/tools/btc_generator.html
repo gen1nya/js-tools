@@ -6,6 +6,7 @@
     <title>Bitcoin Wallet Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/elliptic/6.5.4/elliptic.min.js"></script>
+    <script src="libs/qrcode.min.js"></script>
     <link rel="stylesheet" href="../css/common.css">
     <style>
         .container {
@@ -364,46 +365,42 @@
         return base58Encode(wif);
     }
 
-    // Simple QR code implementation via API
+    // Local QR code generation (no external API - private keys stay local)
     function generateQR(text, containerId) {
         const container = document.getElementById(containerId);
-        const qrImg = document.createElement('img');
-
-        // Read theme colors from CSS variables
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const bgColor = isDark ? '111827' : 'ffffff';
-        const fgColor = isDark ? 'e5e7eb' : '000000';
+        const bgColor = isDark ? '#111827' : '#ffffff';
+        const fgColor = isDark ? '#e5e7eb' : '#000000';
 
-        // Use free API for QR code generation
-        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(text)}&bgcolor=${bgColor}&color=${fgColor}&margin=10`;
-        qrImg.alt = 'QR Code';
-        qrImg.className = 'qr-code';
-        qrImg.style.maxWidth = '150px';
-        qrImg.style.height = 'auto';
+        const qr = qrcode(0, 'M');
+        qr.addData(text);
+        qr.make();
 
-        // Fallback: if image doesn't load, show text version
-        qrImg.onerror = function() {
-            container.innerHTML = `
-                    <div style="
-                        width: 150px;
-                        height: 150px;
-                        border: 2px dashed var(--border-color);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        text-align: center;
-                        font-size: 12px;
-                        color: var(--text-muted);
-                        background: var(--bg-card);
-                        border-radius: 8px;
-                    ">
-                        QR code<br>unavailable<br><small>(data preserved)</small>
-                    </div>
-                `;
-        };
+        const size = 150;
+        const modules = qr.getModuleCount();
+        const cellSize = size / modules;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        canvas.className = 'qr-code';
+        canvas.style.maxWidth = '150px';
+        canvas.style.height = 'auto';
+
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = fgColor;
+        for (let row = 0; row < modules; row++) {
+            for (let col = 0; col < modules; col++) {
+                if (qr.isDark(row, col)) {
+                    ctx.fillRect(col * cellSize, row * cellSize, cellSize + 0.5, cellSize + 0.5);
+                }
+            }
+        }
 
         container.innerHTML = '';
-        container.appendChild(qrImg);
+        container.appendChild(canvas);
     }
 
     // Main wallet generation function
